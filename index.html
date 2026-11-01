@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
@@ -813,6 +813,39 @@
         .card > h2 .fx-popover {
             bottom: auto;
             top: calc(100% + 8px);
+            left: 0;
+            max-width: min(520px, 90vw);
+            z-index: 99999;
+        }
+        /* 表格標頭專用公式浮動視窗：向下展開、置中顯示、高 z-index 且不被遮擋 */
+        th .fx-wrap {
+            position: relative;
+        }
+        th .fx-popover {
+            top: calc(100% + 8px) !important;
+            bottom: auto !important;
+            left: 50% !important;
+            transform: translateX(-50%) translateY(4px) !important;
+            min-width: 260px !important;
+            max-width: 320px !important;
+            z-index: 999999 !important;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--green) !important;
+        }
+        th .fx-wrap:hover .fx-popover {
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: translateX(-50%) translateY(0) !important;
+            z-index: 1000000 !important;
+        }
+        .eff-table-scroll-wrap {
+            position: relative;
+            overflow: visible;
+        }
+        @media (max-width: 960px) {
+            .eff-table-scroll-wrap {
+                overflow-x: auto;
+                padding-bottom: 70px;
+            }
         }
         .fx-wrap:hover {
             z-index: 3000;
@@ -1215,10 +1248,13 @@
             <button id="tab_btn_flyback" class="tab-btn" onclick="switchPage('flyback')">
                 <span data-i18n="nav_flyback">Flyback Design</span>
             </button>
+            <button id="tab_btn_efficiency" class="tab-btn" onclick="switchPage('efficiency')">
+                <span data-i18n="nav_efficiency">Efficiency</span>
+            </button>
         </div>
         <div class="nav-actions">
-            <button class="sync-btn" onclick="syncPFCtoLLC()" title="將 PFC 的 Vout 與 Pout 範圍同步帶入 LLC 並切換至 LLC 頁面">
-                <span id="sync_btn_text" data-i18n="nav_sync">🔗 同步 PFC 輸出至 LLC</span>
+            <button class="theme-btn" id="reset_all_btn" onclick="resetAllCalculatorState()" title="清除儲存設定並恢復為預設值 (Reset all settings to defaults)" style="background:var(--accent-tint, rgba(239,68,68,0.1)); border:1px solid rgba(239,68,68,0.3); color:var(--ink-primary); font-weight:600; padding:0 10px; height:36px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; font-size:12.5px;">
+                <span>🔄 <span data-i18n="nav_reset">重設</span></span>
             </button>
             <button class="theme-btn" id="pdf_export_btn" onclick="exportCalculationPDF()" title="輸出目前設計頁面的工程計算書 (PDF 格式，完整顯示計算公式與數據)" style="background:var(--accent-tint, rgba(59,130,246,0.12)); border:1px solid var(--accent, #3b82f6); color:var(--ink-primary); font-weight:600; padding:0 12px; height:36px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
                 <span>📄 <span data-i18n="nav_export_pdf">輸出 PDF</span></span>
@@ -2084,6 +2120,112 @@
             </div>
             </div>
         </div>
+
+        <!-- ==================== 第五列：5. PFC 負載效率分析 ==================== -->
+        <div class="card" style="margin-top: 24px;">
+            <h2>
+                <span class="label-with-fx">
+                    📊 5. PFC 負載效率分析
+                    <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
+                        <b>PFC 多負載效率計算模型 (含 115Vac &amp; 230Vac)</b>
+                        <div class="fx-code">Pout(k) = k · Pout<br>Pin(k) = Pout(k) + Ploss(k)<br>η(k) = (Pout(k) / Pin(k)) · 100%<br>Ploss(k) = (Pcore(k) + Pcu(k)) · Phase + Pmos(k) + Pdiode(k) + Pbulk(k) + Pctrl</div>
+                        <div class="fx-note">分別以 115Vac 與 230Vac 輸入市電計算滿載至輕載之電感銅鐵損、MOS 開關導通損及電容 ESR 損耗。</div>
+                    </span></span>
+                </span>
+            </h2>
+            <div class="results-box collapsible-box" id="pfc_sec5_results_box" style="margin-top: 12px;">
+                <h3 class="collapse-header" onclick="toggleCollapsibleBox('pfc_sec5_results_box')">
+                    <span>📊 5. PFC 多負載效率分析計算結果清單</span>
+                    <span class="collapse-toggle-btn" id="pfc_sec5_results_box_btn">▼ 收合</span>
+                </h3>
+                <div class="collapsible-body">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                    <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">100% Load (滿載: <span id="pfc_pout_100_w">-</span> W)</div>
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin:4px 0;">
+                        <div>
+                            <div style="font-size:11px; color:#3b82f6; font-weight:700;">115Vac</div>
+                            <div id="pfc_eff_100_115" style="font-size:1.25rem; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                        <div style="width:1px; height:24px; background:var(--border-color);"></div>
+                        <div>
+                            <div style="font-size:11px; color:#10b981; font-weight:700;">230Vac</div>
+                            <div id="pfc_eff_100_230" style="font-size:1.25rem; font-weight:700; color:#10b981; font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                    </div>
+                    <div id="pfc_pout_100_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗 115V: - W | 230V: - W</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                    <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">50% Load (半載: <span id="pfc_pout_50_w">-</span> W)</div>
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin:4px 0;">
+                        <div>
+                            <div style="font-size:11px; color:#3b82f6; font-weight:700;">115Vac</div>
+                            <div id="pfc_eff_50_115" style="font-size:1.25rem; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                        <div style="width:1px; height:24px; background:var(--border-color);"></div>
+                        <div>
+                            <div style="font-size:11px; color:#10b981; font-weight:700;">230Vac</div>
+                            <div id="pfc_eff_50_230" style="font-size:1.25rem; font-weight:700; color:#10b981; font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                    </div>
+                    <div id="pfc_pout_50_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗 115V: - W | 230V: - W</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                    <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">20% Load (輕載: <span id="pfc_pout_20_w">-</span> W)</div>
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin:4px 0;">
+                        <div>
+                            <div style="font-size:11px; color:#3b82f6; font-weight:700;">115Vac</div>
+                            <div id="pfc_eff_20_115" style="font-size:1.25rem; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                        <div style="width:1px; height:24px; background:var(--border-color);"></div>
+                        <div>
+                            <div style="font-size:11px; color:#10b981; font-weight:700;">230Vac</div>
+                            <div id="pfc_eff_20_230" style="font-size:1.25rem; font-weight:700; color:#10b981; font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                    </div>
+                    <div id="pfc_pout_20_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗 115V: - W | 230V: - W</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                    <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">10% Load (極輕載: <span id="pfc_pout_10_w">-</span> W)</div>
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin:4px 0;">
+                        <div>
+                            <div style="font-size:11px; color:#3b82f6; font-weight:700;">115Vac</div>
+                            <div id="pfc_eff_10_115" style="font-size:1.25rem; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                        <div style="width:1px; height:24px; background:var(--border-color);"></div>
+                        <div>
+                            <div style="font-size:11px; color:#10b981; font-weight:700;">230Vac</div>
+                            <div id="pfc_eff_10_230" style="font-size:1.25rem; font-weight:700; color:#10b981; font-family:'DM Mono',monospace;">- %</div>
+                        </div>
+                    </div>
+                    <div id="pfc_pout_10_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗 115V: - W | 230V: - W</div>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
+                    <thead>
+                        <tr style="background:var(--elevation-tint, rgba(0,0,0,0.03)); border-bottom:2px solid var(--border-color);">
+                            <th style="padding:8px 10px; text-align:left;">市電輸入 (Vin)</th>
+                            <th style="padding:8px 10px; text-align:left;">負載率 (Load)</th>
+                            <th style="padding:8px 10px;">輸出 Pout (W)</th>
+                            <th style="padding:8px 10px;">輸入 Pin (W)</th>
+                            <th style="padding:8px 10px;">電感磁芯損 (W)</th>
+                            <th style="padding:8px 10px;">電感銅損 (W)</th>
+                            <th style="padding:8px 10px;">MOS 損耗 (W)</th>
+                            <th style="padding:8px 10px;">二極體損耗 (W)</th>
+                            <th style="padding:8px 10px;">大電容 ESR 損 (W)</th>
+                            <th style="padding:8px 10px;">總損耗 Ploss (W)</th>
+                            <th style="padding:8px 10px; text-align:center;">轉換效率 η</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pfc_eff_table_body">
+                    </tbody>
+                </table>
+            </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- ==================== 頁面二：半橋/全橋 LLC 諧振轉換器專頁 ==================== -->
@@ -2240,6 +2382,26 @@
                     <div class="input-box">
                         <label>次級整流壓降 Vf (V)</label>
                         <input type="number" id="llc_vf" value="0.3" step="0.05" min="0" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>磁芯體積 Ve (cm³)</label>
+                        <input type="number" id="llc_core_ve" value="9.50" step="0.1" min="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>單位鐵損 Core_loss (W/cm³)</label>
+                        <input type="number" id="llc_core_loss" value="0.08" step="0.01" min="0.001" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>平均圈長 Ave_LTurn (cm)</label>
+                        <input type="number" id="llc_ave_lturn" value="4.20" step="0.1" min="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>一次側線阻 (×10⁻⁵ Ω/cm)</label>
+                        <input type="number" id="llc_rp_unit" value="90.0" step="1" min="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>二次側線阻 (×10⁻⁵ Ω/cm)</label>
+                        <input type="number" id="llc_rs_unit" value="15.0" step="0.5" min="0.1" oninput="calcLLC()">
                     </div>
                     <div class="input-box vin-hover-wrap">
                         <label>建議最小圈數 Np_min (Ts)</label>
@@ -2454,6 +2616,48 @@
                             <span>頻率窗口 [f_min / fr1 / f_max] 輸出電壓 Vo(f)</span>
                             <span class="result-val highlight-val" id="res_llc_f_gain_range">-</span>
                             <span class="fx-popover"><div class="fx-popover-title">輸出電壓頻率函數 Voutnom(f)</div><span class="fx-code">Voutnom(f) = (Vin_nom / (x1·N)) / √[ (1 + Lr/Lm - (Lr/Lm)(fr1/f)²)² + (Lr/Cr)(1/Rac²)(f/fr1 - fr1/f)² ]</span></span>
+                        </div>
+
+                        <!-- 變壓器損耗分析 -->
+                        <div style="font-weight:700; color:var(--accent, #3b82f6); font-size:12px; padding:8px 0 2px; border-bottom:1px solid var(--border-color); margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>🧲 變壓器損耗分析 (Transformer Loss)</span>
+                            <span class="fx-wrap">
+                                <span class="fx-icon fx-mini">📐 公式</span>
+                                <span class="fx-popover">
+                                    <div class="fx-popover-title"><span>🧲 LLC 變壓器損耗模型</span></div>
+                                    <div class="fx-code">Pcore_loss = Core_loss · Ve<br>Pcu_pri = Ip_rms² · (1.6 · Np · Ave_LTurn · Rp_unit)<br>Pcu_sec = Is_rms² · (1.6 · Ns · Ave_LTurn · Rs_unit)<br>Pcu_total = Pcu_pri + Pcu_sec<br>Pxfmr_total = Pcore_loss + Pcu_total<br>Xfmr_eff = Pout / (Pout + Pxfmr_total)</div>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span>變壓器磁芯鐵損 Pcore_loss</span>
+                            <span class="result-val" id="res_llc_pcore_loss">- W</span>
+                            <span class="fx-popover"><b>磁芯鐵損 Pcore_loss</b><div class="fx-code">Pcore_loss = Core_loss · Ve</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>一次側繞組銅損 Pcu_pri</span>
+                            <span class="result-val" id="res_llc_pcu_pri">- W</span>
+                            <span class="fx-popover"><b>一次側銅損 Pcu_pri</b><div class="fx-code">Pcu_pri = Ip_rms² · (1.6 · Np · Ave_LTurn · Rp_unit)</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>二次側繞組銅損 Pcu_sec <span class="fx-mini" style="font-size:11px; opacity:0.85; margin-left:3px;" title="懸停查看公式">📐</span></span>
+                            <span class="result-val" id="res_llc_pcu_sec">- W</span>
+                            <span class="fx-popover"><b>二次側銅損 Pcu_sec</b><div class="fx-code">Pcu_sec = Is_rms² · (1.6 · Ns · Ave_LTurn · Rs_unit)</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>變壓器總銅損 Pcu_total</span>
+                            <span class="result-val highlight-val" id="res_llc_pcu_total">- W</span>
+                            <span class="fx-popover"><b>變壓器總銅損 Pcu_total</b><div class="fx-code">Pcu_total = Pcu_pri + Pcu_sec</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>變壓器總損耗 Pxfmr_total</span>
+                            <span class="result-val highlight-val" id="res_llc_pxfmr_total" style="font-size:1.05rem; color:var(--accent);">- W</span>
+                            <span class="fx-popover"><b>變壓器總損耗 Pxfmr_total</b><div class="fx-code">Pxfmr_total = Pcore_loss + Pcu_total</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>變壓器轉換效率 η_xfmr</span>
+                            <span class="result-val highlight-val" id="res_llc_xfmr_eff">- %</span>
+                            <span class="fx-popover"><b>變壓器轉換效率 η_xfmr</b><div class="fx-code">Xfmr_eff = Pout / (Pout + Pxfmr_total)</div></span>
                         </div>
                     </div>
                 </div>
@@ -2725,6 +2929,339 @@
                     <div class="legend-item"><span class="color-dot" style="background:#dc2626;"></span>峰值點 Ispk (@ t = tnom)</div>
                     <div class="legend-item"><span class="color-dot" style="background:#0ea5e9;"></span>二次側有效值 Is_RMS 水平線</div>
                     <div class="legend-item"><span class="color-dot" style="background:#10b981;"></span>二次側平均值 Is_avg 水平線</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 下方第三排：⚡ 3. MOS & 二次側整流 (SR / Diode) 損耗參數設定 ⟷ 損耗結果分析 (成對水平對齊) ==================== -->
+        <div class="page-grid aligned-row" style="margin-top:24px;">
+            <!-- 左側：一次側 MOS & 二次側整流 (SR / Diode) 參數輸入卡片 -->
+            <div class="card">
+                <h2>
+                    <span class="label-with-fx">
+                        ⚡ 3. MOS &amp; 二次側整流損耗參數設定
+                        <span class="fx-wrap">
+                            <span class="fx-icon">📐 公式</span>
+                            <span class="fx-popover">
+                                <div class="fx-popover-title"><span>⚡ LLC 半導體損耗計算模型</span></div>
+                                <span class="fx-code">Pmos_dc = Nsw · Pcs · Imos_rms² · RDson_100</span>
+                                <span class="fx-code">Poff_loss = Nsw · 0.5 · Idoff · Vin · 0.6 · (Toff / 2) · f</span>
+                                <span class="fx-code">Pgate = Nsw · Qg · Vgs · f</span>
+                                <span class="fx-code">[SR] Psr_cond = Is_rms² · (RDson_SR / Pcs_SR)</span>
+                                <span class="fx-code">[SR] Psr_body = 2 · Iout · Vf_body · t_dead · f</span>
+                                <span class="fx-code">[Diode] Pdiode = Iout · Diode_VF</span>
+                            </span>
+                        </span>
+                    </span>
+                    <span class="badge-tag" id="llc_rectifier_badge">SR 模式</span>
+                </h2>
+
+                <!-- 整流架構選擇下拉選單 (SR / Diode) -->
+                <div class="input-row-2" style="margin-bottom:12px; background:var(--bg-secondary, rgba(0,0,0,0.03)); padding:10px 12px; border-radius:8px; border:1px solid var(--border-color, #e2e8f0);">
+                    <div class="input-box" style="flex:1;">
+                        <label style="font-weight:700; color:var(--accent, #3b82f6);">🔌 二次側整流架構選擇 (Rectifier Mode)</label>
+                        <select id="llc_rectifier_type" onchange="onLLCRectifierTypeChange(); calcLLC();" style="font-weight:700; height:36px;">
+                            <option value="sr" selected>⚡ SR 同步整流 (Synchronous Rectifier MOS)</option>
+                            <option value="diode">🔌 Diode 二極體整流 (Fast Recovery / Schottky Diode)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 一次側 MOSFET 參數區塊 -->
+                <div class="section-title">⚡ 一次側 MOSFET 參數設定</div>
+                <div class="input-row-3" style="margin-bottom:12px;">
+                    <div class="input-box">
+                        <label>RDson_100 (mΩ)</label>
+                        <input type="number" id="llc_mos_rdson100" value="77" step="1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>並聯顆數 Pcs (顆)</label>
+                        <input type="number" id="llc_mos_pcs" value="1" step="1" min="1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>輸出電容 Coss (pF)</label>
+                        <input type="number" id="llc_mos_coss" value="85" step="5" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>輸入電容 Ciss (pF)</label>
+                        <input type="number" id="llc_mos_ciss" value="4340" step="50" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>總閘極電荷 Qg (nC)</label>
+                        <input type="number" id="llc_mos_qg" value="107" step="2" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>米勒電荷 Qgd (nC)</label>
+                        <input type="number" id="llc_mos_qgd" value="36" step="1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>反向恢復電荷 Qrr (nC)</label>
+                        <input type="number" id="llc_mos_qrr" value="9.2" step="0.5" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>內部閘極電阻 Rg (Ω)</label>
+                        <input type="number" id="llc_mos_rg" value="0.77" step="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>開通電阻 Rgate_on (Ω)</label>
+                        <input type="number" id="llc_mos_rg_on" value="4.7" step="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>關斷電阻 Rgate_off (Ω)</label>
+                        <input type="number" id="llc_mos_rg_off" value="2" step="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>驅動電壓 Vgs (V)</label>
+                        <input type="number" id="llc_mos_vgs" value="12" step="0.5" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>米勒平台 Vpaluteau (V)</label>
+                        <input type="number" id="llc_mos_vplat" value="5" step="0.2" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>門檻電壓 Vth (V)</label>
+                        <input type="number" id="llc_mos_vth" value="4" step="0.2" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>規格測試電壓 Vds_spec (V)</label>
+                        <input type="number" id="llc_mos_vds_spec" value="400" step="10" oninput="calcLLC()">
+                    </div>
+                </div>
+
+                <!-- 二次側 SR / Diode 參數區塊 -->
+                <div class="section-title" id="llc_sec_rect_title">⚡ 二次側同步整流 (SR MOS) 參數設定</div>
+                
+                <!-- SR 模式輸入組 -->
+                <div id="llc_sr_inputs_container" class="input-row-3" style="margin-bottom:12px;">
+                    <div class="input-box">
+                        <label>SR 導通電阻 RDson_SR (mΩ)</label>
+                        <input type="number" id="llc_sr_rdson" value="2.5" step="0.1" min="0.01" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>SR 每側並聯顆數 (顆)</label>
+                        <input type="number" id="llc_sr_pcs" value="1" step="1" min="1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>體二極體壓降 Vf_body (V)</label>
+                        <input type="number" id="llc_sr_vf_body" value="0.7" step="0.05" min="0.1" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>SR 死區時間 t_dead (ns)</label>
+                        <input type="number" id="llc_sr_tdead" value="60" step="5" min="0" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>SR 閘極電荷 Qg_SR (nC)</label>
+                        <input type="number" id="llc_sr_qg" value="50" step="5" min="0" oninput="calcLLC()">
+                    </div>
+                    <div class="input-box">
+                        <label>SR 驅動電壓 Vgs_SR (V)</label>
+                        <input type="number" id="llc_sr_vgs" value="10" step="0.5" min="3" oninput="calcLLC()">
+                    </div>
+                </div>
+
+                <!-- Diode 模式輸入組 -->
+                <div id="llc_diode_inputs_container" class="input-row-2" style="margin-bottom:12px; display:none;">
+                    <div class="input-box">
+                        <label>二極體導通壓降 Diode_VF (V)</label>
+                        <input type="number" id="llc_diode_vf" value="0.3" step="0.05" min="0.05" oninput="onLLCDiodeVFInput(this.value)">
+                    </div>
+                    <div class="input-box">
+                        <label>二極體每側並聯顆數 (顆)</label>
+                        <input type="number" id="llc_diode_pcs" value="1" step="1" min="1" oninput="calcLLC()">
+                    </div>
+                </div>
+
+                <button class="action-btn" onclick="calcLLC()">🔄 重新計算 LLC 全部損耗與參數</button>
+            </div>
+
+            <!-- 右側：一次側 MOS & 二次側整流損耗結果分析卡片 -->
+            <div class="card">
+                <h2>
+                    <span>⚡ 3. 一次側 MOS &amp; 二次側整流損耗結果分析</span>
+                    <span class="badge-tag" id="llc_loss_badge">Psemi = - W</span>
+                </h2>
+                <div class="results-box collapsible-box" id="llc_sec3_results_box" style="margin-top:0; flex:1;">
+                    <h3 class="collapse-header" onclick="toggleCollapsibleBox('llc_sec3_results_box')">
+                        <span>⚡ 3. LLC 半導體開關與整流損耗清單</span>
+                        <span class="collapse-toggle-btn" id="llc_sec3_results_box_btn">▼ 收合</span>
+                    </h3>
+                    <div class="collapsible-body">
+                        <!-- 一次側部分 -->
+                        <div style="font-weight:700; color:var(--accent, #3b82f6); font-size:12px; padding:4px 0 2px; border-bottom:1px solid var(--border-color);">🔹 一次側 MOSFET 損耗分析</div>
+                        <div class="result-item">
+                            <span>一次側單顆 MOS 有效電流 Imos_rms</span>
+                            <span class="result-val" id="res_llc_mos_rms">- A</span>
+                            <span class="fx-popover"><b>單顆 MOS 有效電流 Imos_rms</b><div class="fx-code">Imos_rms = (Ip_rms / √2) / Pcs</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>一次側 MOS 導通損耗 Pmos_dc</span>
+                            <span class="result-val" id="res_llc_pmos_dc">- W</span>
+                            <span class="fx-popover"><b>一次側導通損耗 Pmos_dc</b><div class="fx-code">Pmos_dc = Nsw · Pcs · Imos_rms² · RDson_100</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>關斷切換電流 Idoff_mos</span>
+                            <span class="result-val" id="res_llc_mos_idoff">- A</span>
+                            <span class="fx-popover"><b>關斷瞬間電流 Idoff</b><div class="fx-code">Idoff = |Imshunt_nom| / Pcs</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>等效米勒電容 Crss</span>
+                            <span class="result-val" id="res_llc_mos_crss">- pF</span>
+                            <span class="fx-popover"><b>等效米勒電容 Crss</b><div class="fx-code">Crss = Qgd / Vin_nom</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>MOS 關斷時間 Toff</span>
+                            <span class="result-val" id="res_llc_mos_toff">- ns</span>
+                            <span class="fx-popover"><b>關斷時間 Toff</b><div class="fx-code">Toff = Crss·(Rg+Rgate_off)·((Vin-Vplat)/Vplat) + Ciss·(Rg+Rgate_off)·ln(Vplat/Vth)</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>開通切換損耗 Pon_loss (ZVS)</span>
+                            <span class="result-val" id="res_llc_mos_pon">0.00 W (ZVS)</span>
+                            <span class="fx-popover"><b>開通損耗 Pon</b><div class="fx-code">Pon = 0 W (LLC 在 ZVS 區域零電壓導通)</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>關斷切換損耗 Poff_loss</span>
+                            <span class="result-val" id="res_llc_mos_poff">- W</span>
+                            <span class="fx-popover"><b>關斷切換損耗 Poff_loss</b><div class="fx-code">Poff = Nsw · 0.5 · Idoff · Vin_nom · 0.6 · (Toff / 2) · f</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>一次側閘極驅動損耗 Pgate_pri</span>
+                            <span class="result-val" id="res_llc_mos_pgate">- W</span>
+                            <span class="fx-popover"><b>一次側驅動損耗 Pgate</b><div class="fx-code">Pgate = Nsw · Pcs · Qg · Vgs · f</div></span>
+                        </div>
+                        <div class="result-item">
+                            <span>一次側 MOS 總損耗 Pmos_pri_loss <span class="fx-mini" style="font-size:11px; opacity:0.85; margin-left:3px;" title="懸停查看公式">📐</span></span>
+                            <span class="result-val highlight-val" id="res_llc_pmos_total">- W</span>
+                            <span class="fx-popover"><b>一次側 MOS 總損耗 Pmos_pri_loss</b><div class="fx-code">Pmos_pri_loss = Pmos_dc + Poff_loss + Pgate_pri</div></span>
+                        </div>
+
+                        <!-- 二次側部分 -->
+                        <div style="font-weight:700; color:var(--accent, #3b82f6); font-size:12px; padding:8px 0 2px; border-bottom:1px solid var(--border-color); margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>🔸 二次側整流損耗分析 (<span id="res_llc_sec_mode_label">SR 同步整流</span>)</span>
+                            <span class="fx-wrap">
+                                <span class="fx-icon fx-mini">📐 公式</span>
+                                <span class="fx-popover">
+                                    <div class="fx-popover-title"><span>⚡ 二次側整流損耗模型</span></div>
+                                    <div class="fx-code">[SR] Psr_cond = Is_rms² · (RDson_SR / Pcs_SR)<br>[SR] Psr_body = 2 · Iout · Vf_body · t_dead · f<br>[SR] Psr_gate = 2 · Pcs_SR · Qg_SR · Vgs_SR · f<br>[SR] Psr_total = Psr_cond + Psr_body + Psr_gate<br>[Diode] Pdiode_loss = Iout · Diode_VF</div>
+                                </span>
+                            </span>
+                        </div>
+                        
+                        <!-- SR 損耗清單 (SR 模式顯示) -->
+                        <div id="res_llc_sr_items_wrap">
+                            <div class="result-item">
+                                <span>SR 導通損耗 Psr_cond <span class="fx-mini" style="font-size:11px; opacity:0.85; margin-left:3px;" title="懸停查看公式">📐</span></span>
+                                <span class="result-val" id="res_llc_psr_cond">- W</span>
+                                <span class="fx-popover"><b>SR 導通損耗 Psr_cond</b><div class="fx-code">Psr_cond = Is_rms² · (RDson_SR / Pcs_SR)</div></span>
+                            </div>
+                            <div class="result-item">
+                                <span>體二極體死區損耗 Psr_body</span>
+                                <span class="result-val" id="res_llc_psr_body">- W</span>
+                                <span class="fx-popover"><b>體二極體死區導通損耗</b><div class="fx-code">Psr_body = 2 · Iout · Vf_body · t_dead · f</div></span>
+                            </div>
+                            <div class="result-item">
+                                <span>SR 閘極驅動損耗 Psr_gate</span>
+                                <span class="result-val" id="res_llc_psr_gate">- W</span>
+                                <span class="fx-popover"><b>SR 驅動損耗 Psr_gate</b><div class="fx-code">Psr_gate = 2 · Pcs_SR · Qg_SR · Vgs_SR · f</div></span>
+                            </div>
+                            <div class="result-item">
+                                <span>二次側 SR 總損耗 Psr_total</span>
+                                <span class="result-val highlight-val" id="res_llc_psr_total">- W</span>
+                                <span class="fx-popover"><b>SR 總損耗 Psr_total</b><div class="fx-code">Psr_total = Psr_cond + Psr_body + Psr_gate</div></span>
+                            </div>
+                        </div>
+
+                        <!-- Diode 損耗清單 (Diode 模式顯示) -->
+                        <div id="res_llc_diode_items_wrap" style="display:none;">
+                            <div class="result-item">
+                                <span>二極體導通損耗 Pdiode_loss</span>
+                                <span class="result-val highlight-val" id="res_llc_pdiode">- W</span>
+                                <span class="fx-popover"><b>二次側二極體導通損耗 Pdiode_loss</b><div class="fx-code">Pdiode_loss = Iout · Diode_VF</div></span>
+                            </div>
+                        </div>
+
+                        <!-- 半導體總損耗 -->
+                        <div class="result-item" style="border-top:1px dashed var(--border-color); margin-top:6px; padding-top:6px;">
+                            <span style="font-weight:700;">整機半導體開關總損耗 Psemi_total</span>
+                            <span class="result-val highlight-val" id="res_llc_semi_total" style="font-size:1.05rem; color:var(--accent);">- W</span>
+                            <span class="fx-popover"><b>半導體總損耗 Psemi_total</b><div class="fx-code">Psemi_total = Pmos_pri_loss + Psec_rect_loss</div></span>
+                        </div>
+
+                        <!-- 變壓器損耗與系統總損耗 -->
+                        <div class="result-item" style="margin-top:2px;">
+                            <span>變壓器總損耗 Pxfmr_total</span>
+                            <span class="result-val" id="res_llc_pxfmr_total_card3">- W</span>
+                            <span class="fx-popover"><b>變壓器總損耗</b><div class="fx-code">Pxfmr_total = Pcore_loss + Pcu_total</div></span>
+                        </div>
+                        <div class="result-item" style="border-top:1px dashed var(--border-color); margin-top:6px; padding-top:6px;">
+                            <span style="font-weight:700;">系統轉換器總損耗 (半導體 + 變壓器)</span>
+                            <span class="result-val highlight-val" id="res_llc_system_total_loss" style="font-size:1.05rem; color:var(--accent);">- W</span>
+                            <span class="fx-popover"><b>系統轉換器總損耗</b><div class="fx-code">Psystem_total = Psemi_total + Pxfmr_total</div></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 第四排：📊 4. LLC 負載效率分析 (100%、50%、20%、10% Load) ==================== -->
+        <div class="card" style="margin-top: 24px;">
+            <h2>
+                <span class="label-with-fx">
+                    📊 4. LLC 負載效率分析
+                    <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
+                        <b>LLC 多負載效率計算模型</b>
+                        <div class="fx-code">Pout(k) = k · Pout_nom<br>Pin(k) = Pout(k) + Ploss(k)<br>η(k) = (Pout(k) / Pin(k)) · 100%<br>Ploss(k) = Pxfmr(k) + Pmos_pri(k) + Psec_rect(k) + Paux</div>
+                        <div class="fx-note">以額定輸出功率 Pout_nom (W) 為基準 (100% 滿載)，綜合計算 100%、50%、20%、10% 負載下變壓器損耗、一次側 MOS 開關/導通損耗及二次側 SR/Diode 整流損耗。</div>
+                    </span></span>
+                </span>
+            </h2>
+            <div class="results-box collapsible-box" id="llc_eff_results_box" style="margin-top: 12px;">
+                <h3 class="collapse-header" onclick="toggleCollapsibleBox('llc_eff_results_box')">
+                    <span>📊 4. LLC 多負載效率分析計算結果清單</span>
+                    <span class="collapse-toggle-btn" id="llc_eff_results_box_btn">▼ 收合</span>
+                </h3>
+                <div class="collapsible-body">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
+                        <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">100% Load (滿載: <span id="llc_pout_100_w">-</span> W)</div>
+                            <div id="llc_eff_100" style="font-size:1.45rem; font-weight:800; color:var(--accent); font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                            <div id="llc_pout_100_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗: - W | 輸入: - W</div>
+                        </div>
+                        <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">50% Load (半載: <span id="llc_pout_50_w">-</span> W)</div>
+                            <div id="llc_eff_50" style="font-size:1.45rem; font-weight:800; color:#10b981; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                            <div id="llc_pout_50_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗: - W | 輸入: - W</div>
+                        </div>
+                        <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">20% Load (輕載: <span id="llc_pout_20_w">-</span> W)</div>
+                            <div id="llc_eff_20" style="font-size:1.45rem; font-weight:800; color:#f59e0b; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                            <div id="llc_pout_20_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗: - W | 輸入: - W</div>
+                        </div>
+                        <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:12px; color:var(--ink-secondary); font-weight:600; margin-bottom:4px;">10% Load (極輕載: <span id="llc_pout_10_w">-</span> W)</div>
+                            <div id="llc_eff_10" style="font-size:1.45rem; font-weight:800; color:#8b5cf6; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                            <div id="llc_pout_10_sub" style="font-size:10.5px; color:var(--ink-secondary);">損耗: - W | 輸入: - W</div>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
+                            <thead>
+                                <tr style="background:var(--elevation-tint, rgba(0,0,0,0.03)); border-bottom:2px solid var(--border-color);">
+                                    <th style="padding:8px 10px; text-align:left;">負載率 (Load)</th>
+                                    <th style="padding:8px 10px;">輸出 Pout (W)</th>
+                                    <th style="padding:8px 10px;">輸入 Pin (W)</th>
+                                    <th style="padding:8px 10px;">變壓器損耗 (W)</th>
+                                    <th style="padding:8px 10px;">一次側 MOS 損 (W)</th>
+                                    <th style="padding:8px 10px;">二次側整流損 (W)</th>
+                                    <th style="padding:8px 10px;">控制輔助損 (W)</th>
+                                    <th style="padding:8px 10px;">總損耗 Ploss (W)</th>
+                                    <th style="padding:8px 10px; text-align:center;">轉換效率 η</th>
+                                </tr>
+                            </thead>
+                            <tbody id="llc_eff_table_body">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3171,10 +3708,30 @@
                 </h2>
 
                 <div class="input-row-3">
-                    <div class="section-title">🔧 RCD 鉗位電路參數輸入</div>
+                    <div class="section-title">🔧 RCD 鉗位電路與一次側 MOSFET 損耗參數</div>
                     <div class="input-box">
                         <label>實選 MOS 耐壓 MOS_VDS (V)</label>
                         <input type="number" id="flyback_mos_vds" value="800" step="50" oninput="calcFlyback()">
+                    </div>
+                    <div class="input-box">
+                        <label>MOS 導通電阻 RDson_100 (mΩ)</label>
+                        <input type="number" id="flyback_mos_rdson" value="280" step="10" min="1" oninput="calcFlyback()">
+                    </div>
+                    <div class="input-box">
+                        <label>輸出電容 Coss (pF)</label>
+                        <input type="number" id="flyback_mos_coss" value="75" step="5" min="1" oninput="calcFlyback()">
+                    </div>
+                    <div class="input-box">
+                        <label>總閘極電荷 Qg (nC)</label>
+                        <input type="number" id="flyback_mos_qg" value="35" step="2" min="1" oninput="calcFlyback()">
+                    </div>
+                    <div class="input-box">
+                        <label>關斷時間 tf (ns)</label>
+                        <input type="number" id="flyback_mos_tf" value="20" step="2" min="1" oninput="calcFlyback()">
+                    </div>
+                    <div class="input-box">
+                        <label>驅動電壓 Vgs (V)</label>
+                        <input type="number" id="flyback_mos_vgs" value="12" step="0.5" min="1" oninput="calcFlyback()">
                     </div>
                     <div class="input-box">
                         <label>鉗位紋波 Vripple (V)</label>
@@ -3264,10 +3821,48 @@
                         <span class="result-val highlight-val" id="res_fb_copper_loss">-</span>
                         <span class="fx-popover"><b>變壓器總銅損</b><div class="fx-code">P_cu_total = Total_P_loss + Total_S_loss</div></span>
                     </div>
+
+                    <!-- MOSFET 損耗分析 -->
+                    <div style="font-weight:700; color:var(--accent, #3b82f6); font-size:12px; padding:8px 0 2px; border-bottom:1px solid var(--border-color); margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>⚡ 一次側 MOSFET 損耗分析</span>
+                        <span class="fx-wrap">
+                            <span class="fx-icon fx-mini">📐 公式</span>
+                            <span class="fx-popover">
+                                <div class="fx-popover-title"><span>⚡ Flyback MOS 損耗模型</span></div>
+                                <div class="fx-code">Pmos_cond = Ip_rms² · RDson_100<br>Pmos_off = 0.5 · (Vin_min + Vor) · Ippk_ho · tf · fs<br>Pmos_coss = 0.5 · Coss · Vds_valley² · fs<br>Pmos_gate = Qg · Vgs · fs<br>Pmos_total = Pmos_cond + Pmos_off + Pmos_coss + Pmos_gate</div>
+                            </span>
+                        </span>
+                    </div>
                     <div class="result-item">
-                        <span>轉換器總損耗 Total_loss (銅損 + 鐵損 + 二極體損)</span>
-                        <span class="result-val highlight-val" id="res_fb_total_loss">-</span>
-                        <span class="fx-popover"><b>總損耗 Total_loss</b><div class="fx-code">Total_loss = P_cu_total + Ferrite_loss + Pdiode_loss</div></span>
+                        <span>MOS 導通損耗 Pmos_cond</span>
+                        <span class="result-val" id="res_fb_pmos_cond">- W</span>
+                        <span class="fx-popover"><b>導通損耗 Pmos_cond</b><div class="fx-code">Pmos_cond = Ip_rms² · RDson_100</div></span>
+                    </div>
+                    <div class="result-item">
+                        <span>MOS 關斷開關損耗 Pmos_off</span>
+                        <span class="result-val" id="res_fb_pmos_off">- W</span>
+                        <span class="fx-popover"><b>關斷損耗 Pmos_off</b><div class="fx-code">Pmos_off = 0.5 · (Vin_min + Vor) · Ippk_ho · tf · fs</div></span>
+                    </div>
+                    <div class="result-item">
+                        <span>MOS 容性開通損耗 Pmos_coss</span>
+                        <span class="result-val" id="res_fb_pmos_coss">- W</span>
+                        <span class="fx-popover"><b>容性開通損耗 Pmos_coss</b><div class="fx-code">Pmos_coss = 0.5 · Coss · Vds_valley² · fs</div></span>
+                    </div>
+                    <div class="result-item">
+                        <span>MOS 閘極驅動損耗 Pmos_gate</span>
+                        <span class="result-val" id="res_fb_pmos_gate">- W</span>
+                        <span class="fx-popover"><b>閘極驅動損耗 Pmos_gate</b><div class="fx-code">Pmos_gate = Qg · Vgs · fs</div></span>
+                    </div>
+                    <div class="result-item">
+                        <span>一次側 MOS 總損耗 Pmos_total</span>
+                        <span class="result-val highlight-val" id="res_fb_pmos_total">- W</span>
+                        <span class="fx-popover"><b>MOS 總損耗 Pmos_total</b><div class="fx-code">Pmos_total = Pmos_cond + Pmos_off + Pmos_coss + Pmos_gate</div></span>
+                    </div>
+
+                    <div class="result-item" style="border-top:1px dashed var(--border-color); margin-top:6px; padding-top:6px;">
+                        <span style="font-weight:700;">系統轉換器總損耗 Total_loss (變壓器 + MOS + 二極體 + 鉗位)</span>
+                        <span class="result-val highlight-val" id="res_fb_total_loss" style="font-size:1.05rem; color:var(--accent);">-</span>
+                        <span class="fx-popover"><b>系統總損耗 Total_loss</b><div class="fx-code">Total_loss = P_cu_total + Ferrite_loss + Pdiode_loss + Pmos_total + Psn</div></span>
                     </div>
                     </div>
                 </div>
@@ -3298,6 +3893,258 @@
         </div>
     </section>
 
+    <!-- ==================== 頁面四：全機綜合效率與 80 PLUS 評估專頁 ==================== -->
+    <section id="page_efficiency" class="page-section">
+        <!-- 頂部總覽卡片 -->
+        <div class="card" style="margin-bottom: 24px;">
+            <h2>
+                <span class="label-with-fx">
+                    📈 全機綜合效率與 80 PLUS 評估 (PFC + LLC 串聯系統)
+                    <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
+                        <b>全機系統總效率計算模型</b>
+                        <div class="fx-code">η_sys = η_PFC · η_LLC<br>Pout_sys = Pout_LLC<br>Pin_sys = Pout_sys / η_sys<br>Ploss_total = Ploss_PFC + Ploss_LLC<br>Δη = η_sys - η_target</div>
+                        <div class="fx-note">全機串聯總效率為 PFC 前級與 LLC 後級轉換效率之乘積；總損耗為兩級損耗之和。對比 80 PLUS 目標門檻 (鈦金 / 白金 / 金牌) 進行判定。</div>
+                    </span></span>
+                </span>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <label for="eff_target_tier_select" style="font-size:13px; font-weight:600; color:var(--ink-secondary);">🎯 80 PLUS 目標等級:</label>
+                        <select id="eff_target_tier_select" onchange="calcEfficiencyPage()" style="padding:4px 10px; font-size:13px; font-weight:700; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--accent); cursor:pointer;">
+                            <option value="titanium" selected>🏆 80 PLUS Titanium (鈦金)</option>
+                            <option value="platinum">💎 80 PLUS Platinum (白金)</option>
+                            <option value="gold">🥇 80 PLUS Gold (金牌)</option>
+                        </select>
+                    </div>
+                    <span class="badge-tag" id="eff_system_tier_badge" style="font-size:12.5px; font-weight:700;">80 PLUS: 評估中</span>
+                </div>
+            </h2>
+
+            <!-- 四點 KPI 負載效率 (10%, 20%, 50%, 100%) -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:20px;">
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:13px; color:var(--ink-secondary); font-weight:600;">100% Load (滿載)</div>
+                    <div id="sys_eff_100_val" style="font-size:1.75rem; font-weight:800; color:var(--accent); font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                    <div id="sys_eff_100_sub" style="font-size:11.5px; color:var(--ink-secondary);">PFC: - % | LLC: - %</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:13px; color:var(--ink-secondary); font-weight:600;">50% Load (半載)</div>
+                    <div id="sys_eff_50_val" style="font-size:1.75rem; font-weight:800; color:#10b981; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                    <div id="sys_eff_50_sub" style="font-size:11.5px; color:var(--ink-secondary);">PFC: - % | LLC: - %</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:13px; color:var(--ink-secondary); font-weight:600;">20% Load (輕載)</div>
+                    <div id="sys_eff_20_val" style="font-size:1.75rem; font-weight:800; color:#f59e0b; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                    <div id="sys_eff_20_sub" style="font-size:11.5px; color:var(--ink-secondary);">PFC: - % | LLC: - %</div>
+                </div>
+                <div class="stat-card" style="background:var(--elevation-tint, rgba(59,130,246,0.06)); border:1px solid var(--border-color); border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:13px; color:var(--ink-secondary); font-weight:600;">10% Load (極輕載)</div>
+                    <div id="sys_eff_10_val" style="font-size:1.75rem; font-weight:800; color:#8b5cf6; font-family:'DM Mono',monospace; margin:4px 0;">- %</div>
+                    <div id="sys_eff_10_sub" style="font-size:11.5px; color:var(--ink-secondary);">PFC: - % | LLC: - %</div>
+                </div>
+            </div>
+
+            <!-- 全機串聯系統轉換效率與損耗數學模型可視化區塊 (黑底高對比樣式，無論亮色/深色模式皆清晰可見) -->
+            <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px 18px; margin-bottom:20px; box-shadow:0 4px 14px rgba(0,0,0,0.15);">
+                <div style="font-weight:700; color:#38bdf8; font-size:13.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <span>📐 全機串聯系統轉換效率與損耗數學模型 (PFC + LLC Cascade System)</span>
+                </div>
+                <div class="fx-code" style="margin:0; padding:10px 14px; background:#1e293b !important; color:#facc15 !important; border-radius:6px; border-left:3px solid #10b981; font-size:14px;">
+η_sys = η_PFC · η_LLC<br>Pout_sys = Pout_LLC<br>Pin_sys = Pout_sys / η_sys<br>Ploss_total = Ploss_PFC + Ploss_LLC<br>Δη = η_sys - η_target
+                </div>
+                <div style="font-size:12px; color:#94a3b8; margin-top:8px;">
+                    💡 <b>物理模型</b>：全機總效率為 PFC 前級與 LLC 後級轉換效率之乘積；總損耗為兩級損耗之代數和。分別對比 230V EU 及 115V EU / US 標準門檻進行判定。
+                </div>
+            </div>
+
+            <!-- ==================== 表格一：230Vac (230V EU) 全機綜合效率與 80 PLUS 評估 ==================== -->
+            <div style="margin-bottom:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:14px; font-weight:700; color:#10b981; display:flex; align-items:center; gap:6px;">
+                        <span>🌐 230Vac (230V EU 市電規格) 全機系統綜合效率評估</span>
+                    </div>
+                    <span class="badge-tag" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid #10b981;">230V EU 標竿</span>
+                </div>
+                <div class="eff-table-scroll-wrap">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
+                        <thead>
+                            <tr style="background:var(--elevation-tint, rgba(0,0,0,0.04)); border-bottom:2px solid var(--border-color);">
+                                <th style="padding:10px; text-align:left;">負載點 (Load)</th>
+                                <th style="padding:10px;">系統輸出 Pout</th>
+                                <th style="padding:10px;">PFC 級效率</th>
+                                <th style="padding:10px;">LLC 級效率</th>
+                                <th style="padding:10px; font-weight:700; color:var(--accent);">
+                                    <span class="label-with-fx" style="justify-content:center;">
+                                        全機總效率 η_sys
+                                        <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
+                                            <b>全機總效率模型 (230Vac)</b>
+                                            <div class="fx-code">η_sys = η_PFC · η_LLC</div>
+                                            <div class="fx-note" style="font-size:11px; margin-top:4px;">全機效率為前後級轉換效率相乘。</div>
+                                        </span></span>
+                                    </span>
+                                </th>
+                                <th style="padding:10px;">
+                                    <span class="label-with-fx" style="justify-content:center;">
+                                        全機總損耗
+                                        <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
+                                            <b>全機總損耗模型 (230Vac)</b>
+                                            <div class="fx-code">Ploss_total = Ploss_PFC + Ploss_LLC</div>
+                                            <div class="fx-note" style="font-size:11px; margin-top:4px;">全機損耗為 PFC 損耗與 LLC 損耗總和。</div>
+                                        </span></span>
+                                    </span>
+                                </th>
+                                <th style="padding:10px;" id="th_target_tier_230">80 PLUS Titanium (230V EU) 標準門檻</th>
+                                <th style="padding:10px;">目標判定</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sys_eff_table_body_230">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==================== 表格二：115Vac (115V EU / US) 全機綜合效率與 80 PLUS 評估 ==================== -->
+            <div style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:14px; font-weight:700; color:#3b82f6; display:flex; align-items:center; gap:6px;">
+                        <span>🇺🇸 115Vac (115V EU / US 市電規格) 全機系統綜合效率評估</span>
+                    </div>
+                    <span class="badge-tag" style="background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid #3b82f6;">115V 標竿</span>
+                </div>
+                <div class="eff-table-scroll-wrap">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
+                        <thead>
+                            <tr style="background:var(--elevation-tint, rgba(0,0,0,0.04)); border-bottom:2px solid var(--border-color);">
+                                <th style="padding:10px; text-align:left;">負載點 (Load)</th>
+                                <th style="padding:10px;">系統輸出 Pout</th>
+                                <th style="padding:10px;">PFC 級效率</th>
+                                <th style="padding:10px;">LLC 級效率</th>
+                                <th style="padding:10px; font-weight:700; color:var(--accent);">
+                                    <span class="label-with-fx" style="justify-content:center;">
+                                        全機總效率 η_sys
+                                        <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
+                                            <b>全機總效率模型 (115Vac)</b>
+                                            <div class="fx-code">η_sys = η_PFC · η_LLC</div>
+                                            <div class="fx-note" style="font-size:11px; margin-top:4px;">全機效率為前後級轉換效率相乘。</div>
+                                        </span></span>
+                                    </span>
+                                </th>
+                                <th style="padding:10px;">
+                                    <span class="label-with-fx" style="justify-content:center;">
+                                        全機總損耗
+                                        <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
+                                            <b>全機總損耗模型 (115Vac)</b>
+                                            <div class="fx-code">Ploss_total = Ploss_PFC + Ploss_LLC</div>
+                                            <div class="fx-note" style="font-size:11px; margin-top:4px;">全機損耗為 PFC 損耗與 LLC 損耗總和。</div>
+                                        </span></span>
+                                    </span>
+                                </th>
+                                <th style="padding:10px;" id="th_target_tier_115">80 PLUS Titanium (115V EU) 標準門檻</th>
+                                <th style="padding:10px;">目標判定</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sys_eff_table_body_115">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 效率曲線圖表卡片 -->
+        <div class="card" style="margin-bottom: 24px;">
+            <h2>
+                <span class="label-with-fx">
+                    📈 全負載效率曲線圖 (10% ~ 100% Load & 80 PLUS 標竿)
+                    <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
+                        <b>全負載效率曲線數學模型</b>
+                        <div class="fx-code">Pout(k) = k · Pnom<br>Ploss(k) = Pfixed + Pcond · k² + Psw · k<br>Pin(k) = Pout(k) + Ploss(k)<br>η(k) = (Pout(k) / Pin(k)) · 100%<br>η_sys(k) = η_PFC(k) · η_LLC(k)</div>
+                        <div class="fx-note">以負載率 k (10% ~ 100%) 計算固定磁芯驅動損耗、導通銅損 (I²R) 與開關損耗，繪製連續效率特徵曲線並比對 80 PLUS 標竿門檻。</div>
+                    </span></span>
+                </span>
+                <span class="badge-tag">Dynamic Efficiency Curves</span>
+            </h2>
+            <div class="canvas-wrapper">
+                <canvas id="systemEfficiencyChart" width="820" height="400" style="cursor: crosshair;"></canvas>
+            </div>
+            <div class="chart-legend" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:16px; justify-content:center;">
+                <div class="legend-item"><span class="color-dot" style="background:#10b981;"></span><b>全機總效率 η_sys (230V)</b></div>
+                <div class="legend-item"><span class="color-dot" style="background:#3b82f6;"></span><b>全機總效率 η_sys (115V)</b></div>
+                <div class="legend-item"><span class="color-dot" style="background:#f59e0b;"></span><b>LLC 後級效率 η_llc</b></div>
+                <div class="legend-item"><span class="color-dot" style="background:#6366f1; border-style:dashed;"></span>80 PLUS Titanium (230V EU)</div>
+                <div class="legend-item"><span class="color-dot" style="background:#94a3b8; border-style:dashed;"></span>80 PLUS Titanium (115V EU)</div>
+            </div>
+        </div>
+
+        <!-- 系統損耗分佈卡片 (含全負載 100%~10% 與 230Vac/115Vac 雙電壓條件) -->
+        <div class="card">
+            <h2>
+                <span class="label-with-fx">
+                    <span>🔍 系統各級損耗分配分析</span>
+                    <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
+                        <b>損耗分配模型</b>
+                        <div class="fx-code">Ploss_total = Ploss_PFC + Ploss_LLC<br>PFC_ratio = (Ploss_PFC / Ploss_total) · 100%<br>LLC_ratio = (Ploss_LLC / Ploss_total) · 100%</div>
+                        <div class="fx-note">分析 PFC 級電感磁芯/銅損、MOS 開關/導通損、二極體損與大電容 ESR 損，及 LLC 級變壓器鐵/銅損、半導體開關整流損在各負載條件下之分佈。</div>
+                    </span></span>
+                </span>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <!-- 電壓選擇 -->
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <label for="sys_loss_vac_select" style="font-size:12.5px; font-weight:600; color:var(--ink-secondary);">⚡ 市電輸入:</label>
+                        <select id="sys_loss_vac_select" onchange="renderSystemLossBreakdown()" style="padding:4px 8px; font-size:12.5px; font-weight:700; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--accent); cursor:pointer;">
+                            <option value="230" selected>230Vac (高壓高效率)</option>
+                            <option value="115">115Vac (低壓大電流)</option>
+                        </select>
+                    </div>
+                    <!-- 負載選擇 -->
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <label for="sys_loss_load_select" style="font-size:12.5px; font-weight:600; color:var(--ink-secondary);">📊 負載條件:</label>
+                        <select id="sys_loss_load_select" onchange="renderSystemLossBreakdown()" style="padding:4px 8px; font-size:12.5px; font-weight:700; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--accent); cursor:pointer;">
+                            <option value="100" selected>100% Load (滿載)</option>
+                            <option value="50">50% Load (半載)</option>
+                            <option value="20">20% Load (輕載)</option>
+                            <option value="10">10% Load (極輕載)</option>
+                        </select>
+                    </div>
+                    <span class="badge-tag" id="sys_loss_total_badge">Total: - W</span>
+                </div>
+            </h2>
+            <!-- 動態損耗明細與比例進度條卡片 -->
+            <div id="sys_loss_breakdown_content" style="padding:10px 0;">
+            </div>
+
+            <!-- 下方：全工況 8 點損耗綜合彙總表 -->
+            <div style="margin-top:20px;">
+                <div style="font-size:13px; font-weight:700; margin-bottom:8px; color:var(--ink-primary); display:flex; align-items:center; gap:6px;">
+                    <span>📋 全工況 (230Vac / 115Vac × 10%~100% Load) 損耗細項與效率全覽表</span>
+                </div>
+                <div class="eff-table-scroll-wrap">
+                    <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right;">
+                        <thead>
+                            <tr style="background:var(--elevation-tint, rgba(0,0,0,0.03)); border-bottom:2px solid var(--border-color);">
+                                <th style="padding:7px 8px; text-align:left;">市電 Vin</th>
+                                <th style="padding:7px 8px; text-align:left;">負載率</th>
+                                <th style="padding:7px 8px;">輸出 Pout</th>
+                                <th style="padding:7px 8px;">PFC 磁芯損</th>
+                                <th style="padding:7px 8px;">PFC 銅損</th>
+                                <th style="padding:7px 8px;">PFC MOS損</th>
+                                <th style="padding:7px 8px;">PFC 二極體</th>
+                                <th style="padding:7px 8px;">PFC 電容ESR</th>
+                                <th style="padding:7px 8px; font-weight:700; color:#3b82f6;">PFC 總損</th>
+                                <th style="padding:7px 8px;">LLC 變壓器損</th>
+                                <th style="padding:7px 8px;">LLC MOS損</th>
+                                <th style="padding:7px 8px;">LLC 整流損</th>
+                                <th style="padding:7px 8px; font-weight:700; color:#f59e0b;">LLC 總損</th>
+                                <th style="padding:7px 8px; font-weight:700; color:var(--accent);">全機總損耗</th>
+                                <th style="padding:7px 8px; font-weight:700; text-align:center;">全機總效率 η</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sys_loss_matrix_table_body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
 <!-- 同步完成浮動提示 -->
 <div id="toast" class="toast-msg">✅ 已將 PFC 輸出電壓與功率範圍同步至 LLC 頁面！</div>
 
@@ -3310,6 +4157,7 @@ const I18N_DICTS = {
         nav_pfc: "PFC Design",
         nav_llc: "LLC Design",
         nav_flyback: "Flyback Design",
+        nav_efficiency: "Efficiency",
         nav_sync: "🔗 同步 PFC 輸出至 LLC",
         theme_dark: "🌙 Obsidian 深色",
         theme_light: "☀️ Pirsch 淺色",
@@ -3329,12 +4177,14 @@ const I18N_DICTS = {
         fb_res_wire_s: "建議二次側線徑 d_wire_s",
         btn_expand: "▶ 展開",
         btn_collapse: "▼ 收合",
-        nav_export_pdf: "輸出 PDF"
+        nav_export_pdf: "輸出 PDF",
+        nav_reset: "重設"
     },
     en: {
         nav_pfc: "PFC Design",
         nav_llc: "LLC Design",
         nav_flyback: "Flyback Design",
+        nav_efficiency: "Efficiency",
         nav_sync: "🔗 Sync PFC to LLC",
         theme_dark: "🌙 Obsidian Dark",
         theme_light: "☀️ Pirsch Light",
@@ -3354,12 +4204,14 @@ const I18N_DICTS = {
         fb_res_wire_s: "Recommended Secondary Wire Dia d_wire_s",
         btn_expand: "▶ Expand",
         btn_collapse: "▼ Collapse",
-        nav_export_pdf: "Export PDF"
+        nav_export_pdf: "Export PDF",
+        nav_reset: "Reset"
     },
     vi: {
         nav_pfc: "PFC Design",
         nav_llc: "LLC Design",
         nav_flyback: "Flyback Design",
+        nav_efficiency: "Efficiency",
         nav_sync: "🔗 Đồng bộ PFC sang LLC",
         theme_dark: "🌙 Obsidian Tối",
         theme_light: "☀️ Pirsch Sáng",
@@ -3379,7 +4231,8 @@ const I18N_DICTS = {
         fb_res_wire_s: "Đường kính dây thứ cấp khuyến nghị d_wire_s",
         btn_expand: "▶ Mở rộng",
         btn_collapse: "▼ Thu gọn",
-        nav_export_pdf: "Xuất PDF"
+        nav_export_pdf: "Xuất PDF",
+        nav_reset: "Đặt lại"
     }
 };
 
@@ -3420,6 +4273,9 @@ function changeLanguage(lang) {
 function togglePirschTheme() {
     document.body.classList.toggle('theme-dark');
     const isDark = document.body.classList.contains('theme-dark');
+    try {
+        localStorage.setItem('powercalc_theme', isDark ? 'dark' : 'light');
+    } catch (_) {}
     const themeIcon = document.getElementById('theme_toggle_icon');
     if (themeIcon) {
         themeIcon.textContent = isDark ? '☀️' : '🌙';
@@ -3449,12 +4305,20 @@ function setLLCYAxisMode(mode) {
 
 // 三頁面分頁切換控制 (PFC / LLC / Flyback)
 function switchPage(pageName) {
+    try {
+        localStorage.setItem('powercalc_active_page', pageName);
+    } catch (_) {}
     const pfcPage = document.getElementById('page_pfc');
     const llcPage = document.getElementById('page_llc');
     const flybackPage = document.getElementById('page_flyback');
+    const effPage = document.getElementById('page_efficiency');
     const pfcBtn = document.getElementById('tab_btn_pfc');
     const llcBtn = document.getElementById('tab_btn_llc');
     const flybackBtn = document.getElementById('tab_btn_flyback');
+    const effBtn = document.getElementById('tab_btn_efficiency');
+
+    if (effPage) effPage.classList.remove('active');
+    if (effBtn) effBtn.classList.remove('active');
     const numBadge = document.getElementById('hero_num_badge');
     const eyebrowText = document.getElementById('hero_eyebrow_text');
 
@@ -3472,18 +4336,27 @@ function switchPage(pageName) {
         if (numBadge) numBadge.textContent = '01';
         if (eyebrowText) eyebrowText.textContent = 'CHAPTER 01 · BOOST APFC CCM DESIGN';
         calcPFC();
+        if (typeof renderAllLatexFormulas === 'function') renderAllLatexFormulas();
     } else if (pageName === 'llc') {
         if (llcPage) llcPage.classList.add('active');
         if (llcBtn) llcBtn.classList.add('active');
         if (numBadge) numBadge.textContent = '02';
         if (eyebrowText) eyebrowText.textContent = 'CHAPTER 02 · LLC RESONANT TANK & WAVEFORMS';
         calcLLC();
+        if (typeof renderAllLatexFormulas === 'function') renderAllLatexFormulas();
     } else if (pageName === 'flyback') {
         if (flybackPage) flybackPage.classList.add('active');
         if (flybackBtn) flybackBtn.classList.add('active');
         if (numBadge) numBadge.textContent = '03';
         if (eyebrowText) eyebrowText.textContent = 'CHAPTER 03 · FLYBACK TRANSFORMER & QR/DCM/BCM DESIGN';
         if (typeof calcFlyback === 'function') calcFlyback();
+        if (typeof renderAllLatexFormulas === 'function') renderAllLatexFormulas();
+    } else if (pageName === 'efficiency') {
+        if (effPage) effPage.classList.add('active');
+        if (effBtn) effBtn.classList.add('active');
+        if (numBadge) numBadge.textContent = '04';
+        if (eyebrowText) eyebrowText.textContent = 'CHAPTER 04 · SYSTEM EFFICIENCY & 80 PLUS BENCHMARKS';
+        if (typeof calcEfficiencyPage === 'function') calcEfficiencyPage();
         if (typeof renderAllLatexFormulas === 'function') renderAllLatexFormulas();
     }
 }
@@ -3504,6 +4377,7 @@ function syncPFCtoLLC() {
     document.getElementById('llc_pout_max').value = pfcPmax;
 
     switchPage('llc');
+    scheduleAutoSave();
 
     const toast = document.getElementById('toast');
     toast.classList.add('show');
@@ -3518,6 +4392,7 @@ function applyIdealPFCL() {
     if (lastCalculatedPFCL_uH > 0) {
         document.getElementById('pfc_l1').value = lastCalculatedPFCL_uH.toFixed(1);
         calcPFC();
+        scheduleAutoSave();
     }
 }
 
@@ -3528,11 +4403,13 @@ function applyIdealPFCNx() {
         if (lastCalculatedPFCNp1_Ts > 0) {
             document.getElementById('pfc_n1').value = Math.ceil(lastCalculatedPFCNp1_Ts);
             calcPFC();
+            scheduleAutoSave();
         }
     } else {
         if (lastCalculatedPFCN_Ts > 0) {
             document.getElementById('pfc_nx').value = Math.round(lastCalculatedPFCN_Ts);
             calcPFC();
+            scheduleAutoSave();
         }
     }
 }
@@ -3541,45 +4418,252 @@ const DEFAULT_PFC_LX_FORMULA = 'L_inital * (1 / (a + b * H_Oe^c)) / 100';
 const DEFAULT_PFC_PCORE_FORMULA = '(dB_G / 1000)^2.284 * (3.05 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000';
 
 const DEFAULT_POWDER_PRESETS = {
+    // ── CSC High Flux (CH 系列) ──
+    'csc_hf_26': {
+        name: 'CSC High Flux (CH 26µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (26µ)，最高抗直流偏磁能力 (15,000 Gauss)',
+        coeffs: { a: 0.01, b: '3.41e-8', c: 2.087, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+    'csc_hf_60': {
+        name: 'CSC High Flux (CH 60µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (60µ)，最高抗直流偏磁飽和能力 (15,000 Gauss)',
+        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+    'csc_hf_125': {
+        name: 'CSC High Flux (CH 125µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (125µ)，高電感量與優異直流偏磁',
+        coeffs: { a: 0.01, b: '2.09e-7', c: 2.386, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+    'csc_hf_147': {
+        name: 'CSC High Flux (CH 147µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (147µ)，高導磁率緊湊設計',
+        coeffs: { a: 0.01, b: '1.16e-7', c: 2.619, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+    'csc_hf_160': {
+        name: 'CSC High Flux (CH 160µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (160µ)，超高導磁率粉芯材料',
+        coeffs: { a: 0.01, b: '2.50e-7', c: 2.475, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+    'csc_highflux': {
+        name: 'CSC High Flux (CH 60µ)',
+        desc: 'CSC 昌星高磁通鎳鐵磁粉芯 (60µ)，最高抗直流偏磁飽和能力 (15,000 Gauss)',
+        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.284 * (3.050 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
+    },
+
+    // ── CSC Mega Flux (CK 系列) ──
+    'csc_mf_26': {
+        name: 'CSC Mega Flux (CK 26µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (26µ)，抗超大電流直流偏磁 (16,000 Gauss)',
+        coeffs: { a: 0.01, b: '9.96e-8', c: 1.883, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+    'csc_mf_50': {
+        name: 'CSC Mega Flux (CK 50µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (50µ)，優化直流偏磁平衡',
+        coeffs: { a: 0.01, b: '7.35e-8', c: 2.177, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+    'csc_mf_60': {
+        name: 'CSC Mega Flux (CK 60µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (60µ)，具備最高 16,000 Gauss 飽和磁通密度',
+        coeffs: { a: 0.01, b: '3.30e-7', c: 1.982, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+    'csc_mf_75': {
+        name: 'CSC Mega Flux (CK 75µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (75µ)，高電感量與超高飽和磁通',
+        coeffs: { a: 0.01, b: '1.11e-6', c: 1.841, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+    'csc_mf_90': {
+        name: 'CSC Mega Flux (CK 90µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (90µ)，高導磁率高飽和材料',
+        coeffs: { a: 0.01, b: '2.01e-6', c: 1.828, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+    'csc_megaflux': {
+        name: 'CSC Mega Flux (CK 60µ)',
+        desc: 'CSC 昌星鐵矽超高飽和磁粉芯 (60µ)，具備最高 16,000 Gauss 飽和磁通密度',
+        coeffs: { a: 0.01, b: '3.30e-7', c: 1.982, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.145 * (8.874 * f_kHz + 0.0632 * f_kHz^1.980) * Ve * Stack / 1000'
+    },
+
+    // ── CSC Sendust 鐵矽鋁 (CS 系列) ──
+    'csc_sd_26': {
+        name: 'CSC Sendust (CS 26µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (26µ)，零磁致伸縮超低噪音，抗大偏磁',
+        coeffs: { a: 0.01, b: '1.23e-6', c: 1.697, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+    'csc_sd_60': {
+        name: 'CSC Sendust (CS 60µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (60µ)，零磁致伸縮超低噪音，PFC 經典首選',
+        coeffs: { a: 0.01, b: '2.75e-6', c: 1.782, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+    'csc_sd_75': {
+        name: 'CSC Sendust (CS 75µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (75µ)，緊湊型 PFC 電感首選',
+        coeffs: { a: 0.01, b: '4.58e-6', c: 1.755, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+    'csc_sd_90': {
+        name: 'CSC Sendust (CS 90µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (90µ)，高電感量低圈數設計',
+        coeffs: { a: 0.01, b: '9.54e-6', c: 1.676, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+    'csc_sd_125': {
+        name: 'CSC Sendust (CS 125µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (125µ)，超高導磁率音頻與濾波',
+        coeffs: { a: 0.01, b: '2.41e-5', c: 1.626, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+    'csc_sendust': {
+        name: 'CSC Sendust (CS 60µ)',
+        desc: 'CSC 昌星鐵矽鋁磁粉芯 (60µ)，零磁致伸縮超低噪音，PFC 經典首選',
+        coeffs: { a: 0.01, b: '2.75e-6', c: 1.782, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.207 * (4.518 * f_kHz + 0.0244 * f_kHz^1.967) * Ve * Stack / 1000'
+    },
+
+    // ── CSC MPP 鉬坡莫合金 (CM 系列) ──
+    'csc_mpp_26': {
+        name: 'CSC MPP (CM 26µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (26µ)，超低鐵損與優異直流偏磁',
+        coeffs: { a: 0.01, b: '1.42e-7', c: 2.030, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_60': {
+        name: 'CSC MPP (CM 60µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (60µ)，超低鐵損與優異直流偏磁特性',
+        coeffs: { a: 0.01, b: '1.27e-7', c: 2.412, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_125': {
+        name: 'CSC MPP (CM 125µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (125µ)，超低損耗高精度濾波',
+        coeffs: { a: 0.01, b: '4.07e-7', c: 2.523, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_147': {
+        name: 'CSC MPP (CM 147µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (147µ)，極致品質因數 Q 值',
+        coeffs: { a: 0.01, b: '7.58e-7', c: 2.471, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_160': {
+        name: 'CSC MPP (CM 160µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (160µ)，高導磁率低損耗',
+        coeffs: { a: 0.01, b: '8.20e-7', c: 2.495, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_173': {
+        name: 'CSC MPP (CM 173µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (173µ)，高溫穩定低損耗',
+        coeffs: { a: 0.01, b: '1.03e-6', c: 2.513, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp_200': {
+        name: 'CSC MPP (CM 200µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (200µ)，頂級導磁率與超低鐵損',
+        coeffs: { a: 0.01, b: '1.18e-6', c: 2.524, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+    'csc_mpp': {
+        name: 'CSC MPP (CM 60µ)',
+        desc: 'CSC 昌星鉬坡莫合金磁粉芯 (60µ)，超低鐵損與優異直流偏磁特性',
+        coeffs: { a: 0.01, b: '1.27e-7', c: 2.412, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.183 * (2.485 * f_kHz + 0.0125 * f_kHz^2.099) * Ve * Stack / 1000'
+    },
+
+    // ── 鐵粉芯 (Iron Powder) ──
+    'csc_iron_26': {
+        name: 'Iron Powder (-26材 75µ)',
+        desc: '黃白環 (-26材 75µ)，高性價比、低成本 PFC 與抗電磁干擾濾波電感材料',
+        coeffs: { a: 0.01, b: '9.70e-6', c: 1.720, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.0 * (15.0 * f_kHz + 0.12 * f_kHz^2.0) * Ve * Stack / 1000'
+    },
+    'csc_iron_52': {
+        name: 'Iron Powder (-52材 75µ)',
+        desc: '藍綠環 (-52材 75µ)，鐵損優於 -26 材的高頻低成本電感材料',
+        coeffs: { a: 0.01, b: '4.66e-6', c: 1.840, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.0 * (15.0 * f_kHz + 0.12 * f_kHz^2.0) * Ve * Stack / 1000'
+    },
+    'csc_iron': {
+        name: 'Iron Powder (-26材 75µ)',
+        desc: '標準鐵粉芯 (-26 材 75µ)，高性價比、低成本 PFC 與抗電磁干擾濾波電感材料',
+        coeffs: { a: 0.01, b: '9.70e-6', c: 1.720, d: 0, e: 0 },
+        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
+        pcoreFormula: '(dB_G / 1000)^2.0 * (15.0 * f_kHz + 0.12 * f_kHz^2.0) * Ve * Stack / 1000'
+    },
+
+    // ── 其他廠牌標準材料庫 ──
     'magnetics_koolmu': {
         name: 'Magnetics Kool Mµ (Sendust) 60µ',
         desc: 'Magnetics 鐵矽鋁磁粉芯 (60µ)，標準 1/(a+b·H^c) 擬合與 Steinmetz 損耗模型',
-        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0 },
+        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0, e: 0 },
         lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
         pcoreFormula: '(dB_G / 1000)^2.284 * (3.05 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
     },
     'magnetics_mpp': {
         name: 'Magnetics MPP (Molypermalloy) 60µ',
         desc: 'Magnetics 鉬坡莫合金磁粉芯 (60µ)，超低鐵損與優異直流偏磁特性',
-        coeffs: { a: 0.01, b: '3.65e-8', c: 2.302, d: 0 },
+        coeffs: { a: 0.01, b: '3.65e-8', c: 2.302, d: 0, e: 0 },
         lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
         pcoreFormula: '(dB_G / 1000)^2.18 * (0.85 * f_kHz + 0.0018 * f_kHz^2.4) * Ve * Stack / 1000'
     },
     'magnetics_highflux': {
         name: 'Magnetics High Flux 60µ',
         desc: 'Magnetics 高磁通鎳鐵磁粉芯 (60µ)，具備最高抗直流偏磁飽和能力',
-        coeffs: { a: 0.01, b: '1.09e-8', c: 2.457, d: 0 },
+        coeffs: { a: 0.01, b: '1.09e-8', c: 2.457, d: 0, e: 0 },
         lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
         pcoreFormula: '(dB_G / 1000)^2.22 * (1.95 * f_kHz + 0.0021 * f_kHz^2.38) * Ve * Stack / 1000'
     },
     'micrometals_sendust': {
         name: 'Micrometals Sendust 60µ',
         desc: 'Micrometals (微金屬) 鐵矽鋁磁粉芯，多項式偏磁擬合 a / (1 + b·H + c·H²)',
-        coeffs: { a: 1.0, b: '1.15e-3', c: '2.85e-6', d: 0 },
+        coeffs: { a: 1.0, b: '1.15e-3', c: '2.85e-6', d: 0, e: 0 },
         lxFormula: 'L_inital * (a / (1 + b * H_Oe + c * H_Oe^2))',
         pcoreFormula: '(f_kHz / (4000 / Bpk_G^3 + 0.02 / Bpk_G^2.3 + 0.0001 / Bpk_G^1.65) + 0.0000001 * f_kHz^2 * Bpk_G^2) * Ve * Stack / 1000'
-    },
-    'csc_megaflux': {
-        name: 'CSC Mega Flux 60µ',
-        desc: '昌星 (CSC) 鐵矽系列超高飽和磁粉芯 (60µ)',
-        coeffs: { a: 0.01, b: '2.18e-8', c: 2.385, d: 0 },
-        lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
-        pcoreFormula: '0.045 * (f_kHz^1.38) * (Bpk_mT / 100)^2.15 * Ve * Stack / 1000'
     },
     'custom': {
         name: '自訂材料 (Custom)',
         desc: '使用者自訂磁粉芯偏磁係數與鐵損計算公式',
-        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0 },
+        coeffs: { a: 0.01, b: '5.42e-8', c: 2.326, d: 0, e: 0 },
         lxFormula: 'L_inital * (1 / (a + b * H_Oe^c)) / 100',
         pcoreFormula: '(dB_G / 1000)^2.284 * (3.05 * f_kHz + 0.0023 * f_kHz^2.397) * Ve * Stack / 1000'
     }
@@ -3599,13 +4683,57 @@ function populateMaterialPresetDropdown(selectedKey) {
     if (!select) return;
     
     const allPresets = getAllMaterialPresets();
-    const currentSel = selectedKey || select.value || 'magnetics_koolmu';
+    const currentSel = selectedKey || select.value || 'csc_hf_60';
     
+    const groups = [
+        {
+            label: '── CSC High Flux 高磁通 (CH: 26 ~ 160µ) ──',
+            keys: ['csc_hf_26', 'csc_hf_60', 'csc_hf_125', 'csc_hf_147', 'csc_hf_160']
+        },
+        {
+            label: '── CSC Mega Flux 超高飽和 (CK: 26 ~ 90µ) ──',
+            keys: ['csc_mf_26', 'csc_mf_50', 'csc_mf_60', 'csc_mf_75', 'csc_mf_90']
+        },
+        {
+            label: '── CSC Sendust 鐵矽鋁 (CS: 26 ~ 125µ) ──',
+            keys: ['csc_sd_26', 'csc_sd_60', 'csc_sd_75', 'csc_sd_90', 'csc_sd_125']
+        },
+        {
+            label: '── CSC MPP 鉬坡莫合金 (CM: 26 ~ 200µ) ──',
+            keys: ['csc_mpp_26', 'csc_mpp_60', 'csc_mpp_125', 'csc_mpp_147', 'csc_mpp_160', 'csc_mpp_173', 'csc_mpp_200']
+        },
+        {
+            label: '── 鐵粉芯 Iron Powder (-26 / -52 材 75µ) ──',
+            keys: ['csc_iron_26', 'csc_iron_52']
+        }
+    ];
+
     let html = '';
-    html += '<optgroup label="── 原廠標準材料庫 ──">';
-    for (const [key, p] of Object.entries(DEFAULT_POWDER_PRESETS)) {
-        if (key === 'custom') continue;
-        html += `<option value="${key}">${p.name}</option>`;
+    const handledKeys = new Set();
+    handledKeys.add('csc_highflux');
+    handledKeys.add('csc_mpp');
+    handledKeys.add('csc_megaflux');
+    handledKeys.add('csc_sendust');
+    handledKeys.add('csc_iron');
+
+    for (const grp of groups) {
+        html += `<optgroup label="${grp.label}">`;
+        for (const k of grp.keys) {
+            handledKeys.add(k);
+            if (allPresets[k]) {
+                html += `<option value="${k}">${allPresets[k].name}</option>`;
+            }
+        }
+        html += '</optgroup>';
+    }
+
+    html += '<optgroup label="── 其他廠牌標準材料庫 ──">';
+    const otherKeys = ['magnetics_koolmu', 'magnetics_mpp', 'magnetics_highflux', 'micrometals_sendust'];
+    for (const k of otherKeys) {
+        handledKeys.add(k);
+        if (allPresets[k]) {
+            html += `<option value="${k}">${allPresets[k].name}</option>`;
+        }
     }
     html += '</optgroup>';
     
@@ -3613,6 +4741,7 @@ function populateMaterialPresetDropdown(selectedKey) {
     if (customKeys.length > 0) {
         html += '<optgroup label="── 使用者儲存材料庫 ──">';
         for (const key of customKeys) {
+            handledKeys.add(key);
             html += `<option value="${key}">⭐ ${allPresets[key].name}</option>`;
         }
         html += '</optgroup>';
@@ -3625,15 +4754,25 @@ function populateMaterialPresetDropdown(selectedKey) {
     select.innerHTML = html;
     if (allPresets[currentSel]) {
         select.value = currentSel;
+    } else if (currentSel === 'csc_highflux') {
+        select.value = 'csc_hf_60';
+    } else if (currentSel === 'csc_megaflux') {
+        select.value = 'csc_mf_60';
+    } else if (currentSel === 'csc_sendust') {
+        select.value = 'csc_sd_60';
+    } else if (currentSel === 'csc_mpp') {
+        select.value = 'csc_mpp_60';
+    } else if (currentSel === 'csc_iron') {
+        select.value = 'csc_iron_26';
     } else {
-        select.value = 'magnetics_koolmu';
+        select.value = 'csc_hf_60';
     }
 }
 
 function initMaterialLibrary() {
-    let savedKey = 'magnetics_koolmu';
+    let savedKey = 'csc_highflux';
     try {
-        savedKey = localStorage.getItem('powercalc_pfc_current_preset') || 'magnetics_koolmu';
+        savedKey = localStorage.getItem('powercalc_pfc_current_preset') || 'csc_highflux';
     } catch(e) {}
     populateMaterialPresetDropdown(savedKey);
     onPFCMaterialPresetChange(true);
@@ -3678,6 +4817,7 @@ function onPFCMaterialPresetChange(isInitial) {
     }
     calcPFC();
     updateCustomFormulaLatexPreviews();
+    scheduleAutoSave();
 }
 
 function onPFCFormulaOrCoeffInput() {
@@ -3690,6 +4830,7 @@ function onPFCFormulaOrCoeffInput() {
     }
     calcPFC();
     updateCustomFormulaLatexPreviews();
+    scheduleAutoSave();
 }
 
 function saveCurrentAsCustomMaterial() {
@@ -3840,6 +4981,25 @@ const SYMBOL_LATEX_MAP = {
     'Pout_max': 'P_{\\text{out,max}}',
     'Pout': 'P_{\\text{out}}',
     'Pin': 'P_{\\text{in}}',
+    'η_sys': '\\eta_{\\text{sys}}',
+    'η_system': '\\eta_{\\text{sys}}',
+    'η_PFC': '\\eta_{\\text{PFC}}',
+    'η_LLC': '\\eta_{\\text{LLC}}',
+    'η_target': '\\eta_{\\text{target}}',
+    'Pout_sys': 'P_{\\text{out,sys}}',
+    'Pout_system': 'P_{\\text{out,sys}}',
+    'Pout_LLC': 'P_{\\text{out,LLC}}',
+    'Pin_sys': 'P_{\\text{in,sys}}',
+    'Pin_system': 'P_{\\text{in,sys}}',
+    'Ploss_total': 'P_{\\text{loss,total}}',
+    'Ploss_PFC': 'P_{\\text{loss,PFC}}',
+    'Ploss_LLC': 'P_{\\text{loss,LLC}}',
+    'Δη': '\\Delta\\eta',
+    'Δ': '\\Delta',
+    'Pnom': 'P_{\\text{nom}}',
+    'Pfixed': 'P_{\\text{fixed}}',
+    'Pcond': 'P_{\\text{cond}}',
+    'Psw': 'P_{\\text{sw}}',
     'Pcore_loss': 'P_{\\text{core,loss}}',
     'Pwire_loss': 'P_{\\text{wire,loss}}',
     'Pwire': 'P_{\\text{wire,loss}}',
@@ -4098,7 +5258,48 @@ const SYMBOL_LATEX_MAP = {
     'Xfmr_eff': '\\eta_{\\text{xfmr}}',
     'Vds_on': 'V_{\\text{ds,on}}',
     'Vds_off': 'V_{\\text{ds,off}}',
-    'Vclamp_peak': 'V_{\\text{clamp,peak}}'
+    'Vclamp_peak': 'V_{\\text{clamp,peak}}',
+    'Psr_cond': 'P_{\\text{sr,cond}}',
+    'Psr_body': 'P_{\\text{sr,body}}',
+    'Psr_gate': 'P_{\\text{sr,gate}}',
+    'Psr_total': 'P_{\\text{sr,total}}',
+    'Pmos_pri': 'P_{\\text{mos,pri}}',
+        'Is_rms': 'I_{\text{s,rms}}',
+    'Ip_rms': 'I_{\text{p,rms}}',
+    'Is_rms2': 'I_{\text{s,rms}}^2',
+    'Ip_rms2': 'I_{\text{p,rms}}^2',
+    'Pmos_pri_loss': 'P_{\text{mos,pri,loss}}',
+    'Pmos_pri': 'P_{\text{mos,pri}}',
+    'Pmos_dc': 'P_{\text{mos,dc}}',
+    'Poff_loss': 'P_{\text{off,loss}}',
+    'Pgate_pri': 'P_{\text{gate,pri}}',
+    'Rp_unit': 'R_{\text{p,unit}}',
+    'Rs_unit': 'R_{\text{s,unit}}',
+    'Np': 'N_{\text{p}}',
+    'Ns': 'N_{\text{s}}',
+    'Psemi_total': 'P_{\\text{semi,total}}',
+    'RDson_SR': 'R_{\\text{ds(on),SR}}',
+    'Pcs_SR': 'P_{\\text{cs,SR}}',
+    'Vf_body': 'V_{F,\\text{body}}',
+    't_dead': 't_{\\text{dead}}',
+    'Vgs_SR': 'V_{\\text{gs,SR}}',
+    'Qg_SR': 'Q_{g,\\text{SR}}',
+    'Diode_VF': 'V_{F,\\text{diode}}',
+    'Pmos_cond': 'P_{\\text{mos,cond}}',
+    'Pmos_off': 'P_{\\text{mos,off}}',
+    'Pmos_coss': 'P_{\\text{mos,coss}}',
+    'Pmos_gate': 'P_{\\text{mos,gate}}',
+    'Pmos_total': 'P_{\\text{mos,total}}',
+    'Pcore_loss': 'P_{\\text{core,loss}}',
+    'Pxfmr_total': 'P_{\\text{xfmr,total}}',
+    'Pcu_pri': 'P_{\\text{Cu,pri}}',
+    'Pcu_sec': 'P_{\\text{Cu,sec}}',
+    'Pcu_total': 'P_{\\text{Cu,total}}',
+    'Ave_LTurn': '\\text{Ave}_{\\text{LTurn}}',
+    'RDson_100': 'R_{\\text{ds(on),100}}',
+    'Coss': 'C_{\\text{oss}}',
+    'Qg': 'Q_{g}',
+    'tf': 't_{f}'
 };
 
 function formatIdentToLatex(ident) {
@@ -4595,6 +5796,7 @@ function resetPFCFormulas() {
     }
     calcPFC();
     updateCustomFormulaLatexPreviews();
+    scheduleAutoSave();
 }
 
 // 安全解析使用者自訂數學公式 (支援 ^ 次方、ΔB 別名與常用數學函數)
@@ -5205,6 +6407,138 @@ function calcPFC() {
     document.getElementById('res_pfc_pbulk').textContent = `${pbulk_loss.toFixed(2)} W`;
     document.getElementById('res_pfc_total_loss').textContent = `${total_pfc_loss.toFixed(2)} W`;
     document.getElementById('res_pfc_total_loss_cu').textContent = `${total_pfc_loss_with_wire.toFixed(2)} W`;
+
+    // 6. PFC 多負載效率分析 (含 115Vac & 230Vac，100%、50%、20%、10% Load)
+    const loadFractions = [1.0, 0.5, 0.2, 0.1];
+    const vacLevels = [115, 230];
+    const pfcMultiLoadResults115 = [];
+    const pfcMultiLoadResults230 = [];
+    const pfcEffTableBody = document.getElementById('pfc_eff_table_body');
+    if (pfcEffTableBody) pfcEffTableBody.innerHTML = '';
+
+    vacLevels.forEach((vac) => {
+        const is230 = (vac === 230);
+        const vin_pk_vac = vac * Math.SQRT2;
+        const est_eff_base = is230 ? 0.98 : 0.965;
+
+        // 該市電電壓群組標題列
+        if (pfcEffTableBody) {
+            const trHeader = document.createElement('tr');
+            trHeader.style.background = is230 ? 'rgba(16,185,129,0.08)' : 'rgba(59,130,246,0.08)';
+            trHeader.style.borderTop = '2px solid var(--border-color)';
+            trHeader.style.fontWeight = '700';
+            trHeader.innerHTML = `
+                <td colspan="11" style="padding:6px 10px; text-align:left; color:${is230 ? '#10b981' : '#3b82f6'};">
+                    ${is230 ? '🌐 230Vac (高壓高效率市電 / EU &amp; Global Grid)' : '🇺🇸 115Vac (低壓高電流市電 / US &amp; TW Grid)'}
+                </td>
+            `;
+            pfcEffTableBody.appendChild(trHeader);
+        }
+
+        loadFractions.forEach((k) => {
+            const pk_out = pout * k;
+            const pk_pin_est = pk_out / est_eff_base;
+            const pk_iin_rms = pk_pin_est / vac;
+
+            // MOS 導通電流 factor
+            const factor = Math.max(0, 1 - (8 * Math.SQRT2 * vac) / (3 * Math.PI * vout));
+            const pk_imos_rms = pk_iin_rms * Math.sqrt(factor);
+            const pk_mos_dc = rdson_100 * pk_imos_rms * pk_imos_rms;
+
+            // 電感繞線銅損 (隨輸入電流平方縮放)
+            const pk_wire = (rcu_60 * 1e-3) * Math.pow(pk_iin_rms, 2) * phase;
+
+            // 大電容 ESR 損耗
+            const pk_pfc_io = pk_out / vout;
+            const icrms_inner_vac = Math.max(0, (16 * vout) / (3 * Math.PI * vin_pk_vac) - est_eff_base * est_eff_base);
+            const pk_icrms = (pk_pfc_io / est_eff_base) * Math.sqrt(icrms_inner_vac);
+            const pk_bulk = pk_icrms * pk_icrms * bulk_esr;
+
+            // 二極體導通損耗
+            const pk_diode = (pk_out / vout) * diode_vf;
+
+            // MOS 開關切換損耗 (隨電流線性縮放，且開關損隨輸入電壓調整)
+            const pk_mos_sw = (pon_loss + poff_loss) * k * (vac_min / vac);
+            const pk_coss = 2 * coss_avg * vin_pk_vac * f;
+            const pk_gate = pgate;
+            const pk_mos_total = pk_mos_dc + pk_mos_sw + pk_coss + pk_gate;
+
+            // 磁芯鐵損 (230Vac 下伏秒積與 ΔB 略低，取相應比例)
+            const vsec_ratio = Math.min(1.2, Math.max(0.65, (vac * (1 - Math.min(0.95, vin_pk_vac / vout))) / (115 * (1 - 115 * Math.SQRT2 / vout))));
+            const pk_core = pcore_loss * Math.pow(vsec_ratio, 1.2) * (0.85 + 0.15 * k) * phase;
+
+            // 控制 IC 待機功率
+            const pk_ctrl = 1.5;
+
+            const pk_loss_total = pk_core + pk_wire + pk_mos_total + pk_diode + pk_bulk + pk_ctrl;
+            const pk_in = pk_out + pk_loss_total;
+            const pk_eff = pk_in > 0 ? (pk_out / pk_in) * 100 : 0;
+
+            const itemRes = {
+                vac,
+                loadPct: Math.round(k * 100),
+                pout: pk_out,
+                pin: pk_in,
+                coreLoss: pk_core,
+                wireLoss: pk_wire,
+                mosLoss: pk_mos_total,
+                diodeLoss: pk_diode,
+                bulkLoss: pk_bulk,
+                ctrlLoss: pk_ctrl,
+                totalLoss: pk_loss_total,
+                eff: pk_eff
+            };
+
+            if (is230) {
+                pfcMultiLoadResults230.push(itemRes);
+            } else {
+                pfcMultiLoadResults115.push(itemRes);
+            }
+
+            if (pfcEffTableBody) {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                tr.innerHTML = `
+                    <td style="padding:6px 10px; text-align:left; font-weight:600; color:${is230 ? '#10b981' : '#3b82f6'};">${vac}Vac</td>
+                    <td style="padding:6px 10px; text-align:left; font-weight:600;">${k === 1.0 ? '100% (滿載)' : k === 0.5 ? '50% (半載)' : k === 0.2 ? '20% (輕載)' : '10% (極輕載)'}</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_out.toFixed(1)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_in.toFixed(1)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_core.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_wire.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_mos_total.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_diode.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace;">${pk_bulk.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; font-family:'DM Mono',monospace; font-weight:600; color:var(--ink-primary);">${pk_loss_total.toFixed(2)} W</td>
+                    <td style="padding:6px 10px; text-align:center; font-family:'DM Mono',monospace; font-weight:700; color:${is230 ? '#10b981' : '#3b82f6'};">${pk_eff.toFixed(2)} %</td>
+                `;
+                pfcEffTableBody.appendChild(tr);
+            }
+        });
+    });
+
+    // 更新區塊 5 KPI 卡片 (115Vac & 230Vac 同時顯示)
+    const setPfcKpi = (prefix, idx) => {
+        const r115 = pfcMultiLoadResults115[idx];
+        const r230 = pfcMultiLoadResults230[idx];
+        if (!r115 || !r230) return;
+        const wEl = document.getElementById(`pfc_pout_${prefix}_w`);
+        if (wEl) wEl.textContent = r230.pout.toFixed(0);
+        const el115 = document.getElementById(`pfc_eff_${prefix}_115`);
+        if (el115) el115.textContent = `${r115.eff.toFixed(2)} %`;
+        const el230 = document.getElementById(`pfc_eff_${prefix}_230`);
+        if (el230) el230.textContent = `${r230.eff.toFixed(2)} %`;
+        const subEl = document.getElementById(`pfc_pout_${prefix}_sub`);
+        if (subEl) subEl.textContent = `損耗 115V: ${r115.totalLoss.toFixed(1)}W | 230V: ${r230.totalLoss.toFixed(1)}W`;
+    };
+
+    setPfcKpi('100', 0);
+    setPfcKpi('50', 1);
+    setPfcKpi('20', 2);
+    setPfcKpi('10', 3);
+
+    window.lastPfcMultiLoadEff115 = pfcMultiLoadResults115;
+    window.lastPfcMultiLoadEff230 = pfcMultiLoadResults230;
+    window.lastPfcMultiLoadEff = pfcMultiLoadResults230;
 
     if (peakInfo) {
         peakInfo.textContent = `ΔI_peak: ${delta_i_peak.toFixed(2)} A | L: ${l_uH.toFixed(1)} μH | Total Loss: ${total_pfc_loss.toFixed(2)} W`;
@@ -6197,6 +7531,7 @@ function applyIdealTransformer() {
     document.getElementById('llc_n_custom').value = n_actual.toFixed(2);
 
     calcLLC();
+    scheduleAutoSave();
 }
 
 function applyIdealTank() {
@@ -6214,7 +7549,45 @@ function applyIdealTank() {
         document.getElementById('llc_lr').value = lrx_new.toFixed(2);
         document.getElementById('llc_lm').value = lmx_new.toFixed(2);
         calcLLC();
+        scheduleAutoSave();
     }
+}
+
+function onLLCRectifierTypeChange() {
+    const type = document.getElementById('llc_rectifier_type')?.value || 'sr';
+    const isSR = (type === 'sr');
+    const srInWrap = document.getElementById('llc_sr_inputs_container');
+    const diodeInWrap = document.getElementById('llc_diode_inputs_container');
+    const srResWrap = document.getElementById('res_llc_sr_items_wrap');
+    const diodeResWrap = document.getElementById('res_llc_diode_items_wrap');
+    const modeBadge = document.getElementById('llc_rectifier_badge');
+    const modeLabel = document.getElementById('res_llc_sec_mode_label');
+    const secTitle = document.getElementById('llc_sec_rect_title');
+
+    if (srInWrap) srInWrap.style.display = isSR ? '' : 'none';
+    if (diodeInWrap) diodeInWrap.style.display = isSR ? 'none' : '';
+    if (srResWrap) srResWrap.style.display = isSR ? '' : 'none';
+    if (diodeResWrap) diodeResWrap.style.display = isSR ? 'none' : '';
+
+    if (modeBadge) modeBadge.textContent = isSR ? 'SR 模式' : 'Diode 模式';
+    if (modeLabel) modeLabel.textContent = isSR ? 'SR 同步整流' : 'Diode 二極體整流';
+    if (secTitle) secTitle.textContent = isSR ? '⚡ 二次側同步整流 (SR MOS) 參數設定' : '🔌 二次側二極體整流參數設定';
+
+    if (!isSR) {
+        const diodeVf = parseFloat(document.getElementById('llc_diode_vf')?.value) || 0.3;
+        const mainVf = document.getElementById('llc_vf');
+        if (mainVf && parseFloat(mainVf.value) !== diodeVf) {
+            mainVf.value = diodeVf;
+        }
+    }
+    if (window.renderAllLatexFormulas) renderAllLatexFormulas();
+    scheduleAutoSave();
+}
+
+function onLLCDiodeVFInput(val) {
+    const mainVf = document.getElementById('llc_vf');
+    if (mainVf) mainVf.value = val;
+    calcLLC();
 }
 
 function calcLLC() {
@@ -6445,6 +7818,230 @@ function calcLLC() {
     document.getElementById('res_tank_ip_rms').textContent = `${tank_ip_rms.toFixed(4)} A`;
     document.getElementById('res_tank_ico_rms').textContent = `${tank_ico_rms.toFixed(4)} A`;
     document.getElementById('res_tank_ico_rms_sec').textContent = `${tank_ico_rms_sec.toFixed(4)} A`;
+
+    // ==================== 9. 一次側 MOS & 二次側整流 (SR / Diode) 損耗計算 ====================
+    const n_sw = (topo === 'fb') ? 4 : 2; // 半橋 2 顆 MOS, 全橋 4 顆 MOS
+    const mos_rdson100_mohm = parseFloat(document.getElementById('llc_mos_rdson100')?.value) || 77;
+    const mos_pcs = Math.max(1, parseFloat(document.getElementById('llc_mos_pcs')?.value) || 1);
+    const mos_coss_pf = parseFloat(document.getElementById('llc_mos_coss')?.value) || 85;
+    const mos_ciss_pf = parseFloat(document.getElementById('llc_mos_ciss')?.value) || 4340;
+    const mos_qg_nc = parseFloat(document.getElementById('llc_mos_qg')?.value) || 107;
+    const mos_qgd_nc = parseFloat(document.getElementById('llc_mos_qgd')?.value) || 36;
+    const mos_qrr_nc = parseFloat(document.getElementById('llc_mos_qrr')?.value) || 9.2;
+    const mos_rg_ohm = parseFloat(document.getElementById('llc_mos_rg')?.value) || 0.77;
+    const mos_rg_on_ohm = parseFloat(document.getElementById('llc_mos_rg_on')?.value) || 4.7;
+    const mos_rg_off_ohm = parseFloat(document.getElementById('llc_mos_rg_off')?.value) || 2;
+    const mos_vgs_v = parseFloat(document.getElementById('llc_mos_vgs')?.value) || 12;
+    const mos_vplat_v = parseFloat(document.getElementById('llc_mos_vplat')?.value) || 5;
+    const mos_vth_v = parseFloat(document.getElementById('llc_mos_vth')?.value) || 4;
+
+    // 一次側單顆 MOS 有效值電流 (半橋/全橋各導通半週期)
+    const imos_rms_each = (ip_rms_nom / Math.SQRT2) / mos_pcs;
+    // 一次側導通損耗 Pmos_dc
+    const pmos_dc = n_sw * mos_pcs * Math.pow(imos_rms_each, 2) * (mos_rdson100_mohm * 1e-3);
+
+    // 關斷瞬間電流 Idoff = |Imshunt_nom| / Pcs
+    const idoff_mos = Math.abs(imshunt_nom) / mos_pcs;
+    const crss_pf = (mos_qgd_nc * 1e-9) / Math.max(1, vin_nom) * 1e12; // Crss = Qgd / Vin
+    const crss_farad = crss_pf * 1e-12;
+    const ciss_farad = mos_ciss_pf * 1e-12;
+
+    // 關斷時間 Toff (.sm line 222)
+    const toff_sec = (crss_farad * (mos_rg_ohm + mos_rg_off_ohm) * Math.max(0, vin_nom - mos_vplat_v) / mos_vplat_v)
+                   + (ciss_farad * (mos_rg_ohm + mos_rg_off_ohm) * Math.log(Math.max(1.001, mos_vplat_v / mos_vth_v)));
+    const toff_ns = toff_sec * 1e9;
+
+    // 關斷損耗 Poff_loss (.sm line 225)
+    const poff_loss = n_sw * 0.5 * idoff_mos * vin_nom * 0.6 * (toff_sec / 2) * fnom;
+
+    // 一次側開通損耗 Pon_loss (LLC 在諧振區間為 ZVS 零電壓導通)
+    const pon_loss = 0;
+
+    // 一次側閘極驅動損耗 Pgate (.sm line 237)
+    const pgate_pri = n_sw * mos_pcs * (mos_qg_nc * 1e-9) * mos_vgs_v * fnom;
+
+    // 一次側 MOS 總損耗
+    const pmos_pri_total = pmos_dc + poff_loss + pgate_pri;
+
+    // 二次側整流損耗計算 (SR vs Diode)
+    const rectType = document.getElementById('llc_rectifier_type')?.value || 'sr';
+    let psec_loss = 0;
+    let psr_cond = 0, psr_body = 0, psr_gate = 0, psr_total = 0;
+    let pdiode_loss = 0;
+
+    if (rectType === 'sr') {
+        const sr_rdson_mohm = parseFloat(document.getElementById('llc_sr_rdson')?.value) || 2.5;
+        const sr_pcs = Math.max(1, parseFloat(document.getElementById('llc_sr_pcs')?.value) || 1);
+        const sr_vf_body = parseFloat(document.getElementById('llc_sr_vf_body')?.value) || 0.7;
+        const sr_tdead_ns = parseFloat(document.getElementById('llc_sr_tdead')?.value) || 60;
+        const sr_qg_nc = parseFloat(document.getElementById('llc_sr_qg')?.value) || 50;
+        const sr_vgs_v = parseFloat(document.getElementById('llc_sr_vgs')?.value) || 10;
+
+        // SR 導通損耗: 二次側有效值電流 flows through SR
+        psr_cond = Math.pow(is_rms, 2) * (sr_rdson_mohm * 1e-3) / sr_pcs;
+        // 體二極體死區損耗: 2 次死區導通 / 週期
+        psr_body = 2 * io_nom * sr_vf_body * (sr_tdead_ns * 1e-9) * fnom;
+        // SR 驅動損耗: 2 側 SR 驅動
+        psr_gate = 2 * sr_pcs * (sr_qg_nc * 1e-9) * sr_vgs_v * fnom;
+        psr_total = psr_cond + psr_body + psr_gate;
+        psec_loss = psr_total;
+    } else {
+        const diode_vf_val = parseFloat(document.getElementById('llc_diode_vf')?.value) || vf;
+        pdiode_loss = io_nom * diode_vf_val;
+        psec_loss = pdiode_loss;
+    }
+
+    const psemi_total = pmos_pri_total + psec_loss;
+
+    // 更新 DOM 顯示
+    if (document.getElementById('res_llc_mos_rms')) document.getElementById('res_llc_mos_rms').textContent = `${imos_rms_each.toFixed(2)} A`;
+    if (document.getElementById('res_llc_pmos_dc')) document.getElementById('res_llc_pmos_dc').textContent = `${pmos_dc.toFixed(2)} W`;
+    if (document.getElementById('res_llc_mos_idoff')) document.getElementById('res_llc_mos_idoff').textContent = `${idoff_mos.toFixed(2)} A`;
+    if (document.getElementById('res_llc_mos_crss')) document.getElementById('res_llc_mos_crss').textContent = `${crss_pf.toFixed(1)} pF`;
+    if (document.getElementById('res_llc_mos_toff')) document.getElementById('res_llc_mos_toff').textContent = `${toff_ns.toFixed(1)} ns`;
+    if (document.getElementById('res_llc_mos_poff')) document.getElementById('res_llc_mos_poff').textContent = `${poff_loss.toFixed(2)} W`;
+    if (document.getElementById('res_llc_mos_pgate')) document.getElementById('res_llc_mos_pgate').textContent = `${pgate_pri.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pmos_total')) document.getElementById('res_llc_pmos_total').textContent = `${pmos_pri_total.toFixed(2)} W`;
+
+    if (document.getElementById('res_llc_psr_cond')) document.getElementById('res_llc_psr_cond').textContent = `${psr_cond.toFixed(2)} W`;
+    if (document.getElementById('res_llc_psr_body')) document.getElementById('res_llc_psr_body').textContent = `${psr_body.toFixed(2)} W`;
+    if (document.getElementById('res_llc_psr_gate')) document.getElementById('res_llc_psr_gate').textContent = `${psr_gate.toFixed(2)} W`;
+    if (document.getElementById('res_llc_psr_total')) document.getElementById('res_llc_psr_total').textContent = `${psr_total.toFixed(2)} W`;
+
+    if (document.getElementById('res_llc_pdiode')) document.getElementById('res_llc_pdiode').textContent = `${pdiode_loss.toFixed(2)} W`;
+    if (document.getElementById('res_llc_semi_total')) document.getElementById('res_llc_semi_total').textContent = `${psemi_total.toFixed(2)} W`;
+    if (document.getElementById('llc_loss_badge')) document.getElementById('llc_loss_badge').textContent = `Psemi = ${psemi_total.toFixed(2)} W`;
+
+    // 變壓器損耗計算 (鐵損 + 銅損)
+    const llc_ve = parseFloat(document.getElementById('llc_core_ve')?.value) || 9.5;
+    const llc_core_loss_unit = parseFloat(document.getElementById('llc_core_loss')?.value) || 0.08;
+    const llc_ave_lturn = parseFloat(document.getElementById('llc_ave_lturn')?.value) || 4.2;
+    const llc_rp_unit = (parseFloat(document.getElementById('llc_rp_unit')?.value) || 90.0) * 1e-5;
+    const llc_rs_unit = (parseFloat(document.getElementById('llc_rs_unit')?.value) || 15.0) * 1e-5;
+
+    const pcore_loss_xfmr = llc_core_loss_unit * llc_ve;
+    const lnp_cm = np_input * llc_ave_lturn;
+    const lns_cm = ns_input * llc_ave_lturn;
+    const rp_dc = lnp_cm * llc_rp_unit;
+    const rs_dc = lns_cm * llc_rs_unit;
+    const rp_ac = 1.6 * rp_dc; // AC proximity and skin effect factor
+    const rs_ac = 1.6 * rs_dc;
+    const pcu_pri = Math.pow(ip_rms_nom, 2) * rp_ac;
+    const pcu_sec = Math.pow(is_rms, 2) * rs_ac;
+    const pcu_total = pcu_pri + pcu_sec;
+    const pxfmr_total = pcore_loss_xfmr + pcu_total;
+    const xfmr_eff = (pout_nom / (pout_nom + pxfmr_total)) * 100;
+    const psystem_total = psemi_total + pxfmr_total;
+
+    // 更新變壓器與系統總損耗 DOM 顯示
+    if (document.getElementById('res_llc_pcore_loss')) document.getElementById('res_llc_pcore_loss').textContent = `${pcore_loss_xfmr.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pcu_pri')) document.getElementById('res_llc_pcu_pri').textContent = `${pcu_pri.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pcu_sec')) document.getElementById('res_llc_pcu_sec').textContent = `${pcu_sec.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pcu_total')) document.getElementById('res_llc_pcu_total').textContent = `${pcu_total.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pxfmr_total')) document.getElementById('res_llc_pxfmr_total').textContent = `${pxfmr_total.toFixed(2)} W`;
+    if (document.getElementById('res_llc_pxfmr_total_card3')) document.getElementById('res_llc_pxfmr_total_card3').textContent = `${pxfmr_total.toFixed(2)} W`;
+    if (document.getElementById('res_llc_xfmr_eff')) document.getElementById('res_llc_xfmr_eff').textContent = `${xfmr_eff.toFixed(2)} %`;
+    if (document.getElementById('res_llc_system_total_loss')) document.getElementById('res_llc_system_total_loss').textContent = `${psystem_total.toFixed(2)} W`;
+
+    // ==================== 10. LLC 多負載效率分析 (100%、50%、20%、10% Load) ====================
+    const llcMultiLoadResults = [1.0, 0.5, 0.2, 0.1].map(k => {
+        const k_pout = pout_nom * k;
+        // 變壓器磁芯損耗 (頻率接近諧振點時伏秒固定，磁芯損基本恆定)
+        const k_pcore = pcore_loss_xfmr;
+        // 變壓器銅損 (隨電流平方 k^2 變化)
+        const k_pcu = (pcu_pri + pcu_sec) * (k * k);
+        const k_pxfmr = k_pcore + k_pcu;
+
+        // 一次側 MOS 導通損耗 (隨電流平方 k^2 變化)
+        const k_pmos_dc = pmos_dc * (k * k);
+        // 一次側 MOS 關斷切換損耗 (LLC 關斷電流主要為磁化電流 Im，隨負載微幅變動)
+        const k_poff = poff_loss * (0.85 + 0.15 * k);
+        // 一次側 MOS 閘極驅動損耗 (恆定頻率下固定)
+        const k_pgate = pgate_pri;
+        const k_pmos = k_pmos_dc + k_poff + k_pgate;
+
+        // 二次側整流損耗
+        let k_psec = 0;
+        let k_psec_cond = 0;
+        let k_psec_body = 0;
+        let k_psec_gate = 0;
+        if (rectType === 'sr') {
+            k_psec_cond = psr_cond * (k * k);
+            k_psec_body = psr_body * k;
+            k_psec_gate = psr_gate;
+            k_psec = k_psec_cond + k_psec_body + k_psec_gate;
+        } else {
+            k_psec_cond = pdiode_loss * k;
+            k_psec = k_psec_cond;
+        }
+
+        // 控制輔助電路固定損耗 (約 0.5 W)
+        const k_paux = 0.5;
+
+        const k_loss = k_pxfmr + k_pmos + k_psec + k_paux;
+        const k_pin = k_pout + k_loss;
+        const k_eff = k_pin > 0 ? (k_pout / k_pin) * 100 : 0;
+        return {
+            loadPct: Math.round(k * 100),
+            pout: k_pout,
+            pin: k_pin,
+            pcore: k_pcore,
+            pcu: k_pcu,
+            pxfmr: k_pxfmr,
+            pmos_dc: k_pmos_dc,
+            pmos_sw: k_poff,
+            pmos_gate: k_pgate,
+            pmos: k_pmos,
+            psec: k_psec,
+            psec_cond: k_psec_cond,
+            psec_body: k_psec_body,
+            psec_gate: k_psec_gate,
+            paux: k_paux,
+            totalLoss: k_loss,
+            eff: k_eff
+        };
+    });
+
+    window.lastLlcMultiLoadEff = llcMultiLoadResults;
+
+    // 更新 LLC 負載效率 KPI 卡片
+    const setLlcKpi = (prefix, idx) => {
+        const r = llcMultiLoadResults[idx];
+        if (!r) return;
+        const wEl = document.getElementById(`llc_pout_${prefix}_w`);
+        if (wEl) wEl.textContent = r.pout.toFixed(0);
+        const effEl = document.getElementById(`llc_eff_${prefix}`);
+        if (effEl) effEl.textContent = `${r.eff.toFixed(2)} %`;
+        const subEl = document.getElementById(`llc_pout_${prefix}_sub`);
+        if (subEl) subEl.textContent = `損耗: ${r.totalLoss.toFixed(2)} W | 輸入: ${r.pin.toFixed(1)} W`;
+    };
+
+    setLlcKpi('100', 0);
+    setLlcKpi('50', 1);
+    setLlcKpi('20', 2);
+    setLlcKpi('10', 3);
+
+    // 更新 LLC 負載效率詳細表格
+    const llcEffTbody = document.getElementById('llc_eff_table_body');
+    if (llcEffTbody) {
+        llcEffTbody.innerHTML = '';
+        llcMultiLoadResults.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.innerHTML = `
+                <td style="padding:8px 10px; text-align:left; font-weight:600;">${r.loadPct}% (${r.loadPct === 100 ? '滿載' : r.loadPct === 50 ? '半載' : r.loadPct === 20 ? '輕載' : '極輕載'})</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.pout.toFixed(1)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.pin.toFixed(1)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.pxfmr.toFixed(2)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.pmos.toFixed(2)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.psec.toFixed(2)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace;">${r.paux.toFixed(1)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace; font-weight:700;">${r.totalLoss.toFixed(2)}</td>
+                <td style="padding:8px 10px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent); text-align:center;">${r.eff.toFixed(2)} %</td>
+            `;
+            llcEffTbody.appendChild(tr);
+        });
+    }
 
     drawVoutChart(vin_nom, x1, n, lr, lm, cr, rac_min_load, rac_nom, rac_max_load, fr1, fr2, fmin, fmax, vo_min, vo_nom, vo_max, bmax_x_val, bmax_g, np_min_val, fr_target);
     drawLLCCurrentCharts(fnom, t_half, calcIpcmon, calcImnom, calcIpsnom, n, ipk_nom, ip_rms_nom, imshunt_nom, tnom, ispk, is_rms);
@@ -7339,6 +8936,7 @@ function applyIdealFlybackLp() {
         const el = document.getElementById('flyback_lp');
         if (el) el.value = Math.round(lastCalculatedFlybackLp_uH);
         calcFlyback();
+        scheduleAutoSave();
     }
 }
 function applyIdealFlybackNp() {
@@ -7346,6 +8944,7 @@ function applyIdealFlybackNp() {
         const el = document.getElementById('flyback_np_turn');
         if (el) el.value = Math.ceil(lastCalculatedFlybackNp);
         calcFlyback();
+        scheduleAutoSave();
     }
 }
 function applyIdealFlybackNs() {
@@ -7353,6 +8952,7 @@ function applyIdealFlybackNs() {
         const el = document.getElementById('flyback_ns_turn');
         if (el) el.value = Math.round(lastCalculatedFlybackNs);
         calcFlyback();
+        scheduleAutoSave();
     }
 }
 function applyIdealFlybackNd() {
@@ -7360,6 +8960,7 @@ function applyIdealFlybackNd() {
         const el = document.getElementById('flyback_nd_turn');
         if (el) el.value = Math.round(lastCalculatedFlybackNd);
         calcFlyback();
+        scheduleAutoSave();
     }
 }
 
@@ -7577,8 +9178,25 @@ function calcFlyback() {
     const total_s_loss = sdc_loss + sac_loss;
 
     const copper_loss = total_p_loss + total_s_loss;
-    const total_loss = copper_loss + ferrite_loss + pdiode_loss;
-    const xfmr_eff = (pout / (pout + total_loss)) * 100;
+
+    // 5. 一次側 MOSFET 損耗計算 (導通、關斷、容性開通、閘極驅動)
+    const fb_rdson_mohm = parseFloat(document.getElementById('flyback_mos_rdson')?.value) || 280;
+    const fb_coss_pf = parseFloat(document.getElementById('flyback_mos_coss')?.value) || 75;
+    const fb_qg_nc = parseFloat(document.getElementById('flyback_mos_qg')?.value) || 35;
+    const fb_tf_ns = parseFloat(document.getElementById('flyback_mos_tf')?.value) || 20;
+    const fb_vgs_v = parseFloat(document.getElementById('flyback_mos_vgs')?.value) || 12;
+
+    const fsw_actual = isQR ? fsw_qr : fs;
+    const pmos_cond = Math.pow(ip_rms_max, 2) * (fb_rdson_mohm * 1e-3);
+    const pmos_off = 0.5 * (vin_min + vor) * ippk_ho * (fb_tf_ns * 1e-9) * fsw_actual;
+    const vds_turnon = isQR ? vds_valley : (vin_min + vor);
+    const pmos_coss = 0.5 * (fb_coss_pf * 1e-12) * Math.pow(vds_turnon, 2) * fsw_actual;
+    const pmos_gate = (fb_qg_nc * 1e-9) * fb_vgs_v * fsw_actual;
+    const pmos_total = pmos_cond + pmos_off + pmos_coss + pmos_gate;
+
+    const xfmr_loss_total = copper_loss + ferrite_loss;
+    const total_loss = xfmr_loss_total + pdiode_loss + pmos_total + psn;
+    const xfmr_eff = (pout / (pout + xfmr_loss_total)) * 100;
 
     // 更新 DOM 數值顯示
     const setVal = (id, text) => {
@@ -7653,6 +9271,11 @@ function calcFlyback() {
     setVal('res_fb_total_p_loss', `${total_p_loss.toFixed(3)} W (DC: ${pdc_loss.toFixed(3)}W + AC: ${pac_loss.toFixed(3)}W)`);
     setVal('res_fb_total_s_loss', `${total_s_loss.toFixed(3)} W (DC: ${sdc_loss.toFixed(3)}W + AC: ${sac_loss.toFixed(3)}W)`);
     setVal('res_fb_copper_loss', `${copper_loss.toFixed(2)} W`);
+    setVal('res_fb_pmos_cond', `${pmos_cond.toFixed(2)} W`);
+    setVal('res_fb_pmos_off', `${pmos_off.toFixed(2)} W`);
+    setVal('res_fb_pmos_coss', `${pmos_coss.toFixed(2)} W`);
+    setVal('res_fb_pmos_gate', `${pmos_gate.toFixed(2)} W`);
+    setVal('res_fb_pmos_total', `${pmos_total.toFixed(2)} W`);
     setVal('res_fb_total_loss', `${total_loss.toFixed(2)} W (變壓器效率 ${xfmr_eff.toFixed(1)}%)`);
 
     const totalLossBadge = document.getElementById('flyback_total_loss_badge');
@@ -8354,6 +9977,7 @@ function getCurrentActivePage() {
     if (document.getElementById('page_pfc')?.classList.contains('active')) return 'pfc';
     if (document.getElementById('page_llc')?.classList.contains('active')) return 'llc';
     if (document.getElementById('page_flyback')?.classList.contains('active')) return 'flyback';
+    if (document.getElementById('page_efficiency')?.classList.contains('active')) return 'efficiency';
     return 'pfc';
 }
 
@@ -8619,9 +10243,33 @@ function generatePFCReport() {
             ${makePdfEq('輸出電容容量 Cbulk', `C_{bulk} = \\frac{2 \\cdot P_{out} \\cdot t_{hold}}{V_{out}^2 - V_{min}^2} = \\frac{2 \\times ${pout} \\times ${thold * 1e-3}}{${vout}^2 - ${vmin_hold}^2} = ${cbulk_uF.toFixed(2)} \\ \\mu\\text{F}`)}
         </div>
 
+        <div class="pdf-sec">
+            <div class="pdf-sec-title">6. PFC 負載效率分析 (115Vac &amp; 230Vac)</div>
+            <table class="pdf-table">
+                <thead>
+                    <tr style="background:#f1f5f9; text-align:right;">
+                        <th style="text-align:left; padding:6px 8px;">市電 (Vin)</th>
+                        <th style="text-align:left; padding:6px 8px;">負載率 (Load)</th>
+                        <th style="padding:6px 8px;">輸出 Pout</th>
+                        <th style="padding:6px 8px;">輸入 Pin</th>
+                        <th style="padding:6px 8px;">磁芯損</th>
+                        <th style="padding:6px 8px;">銅損</th>
+                        <th style="padding:6px 8px;">MOS損</th>
+                        <th style="padding:6px 8px;">二極體損</th>
+                        <th style="padding:6px 8px;">電容ESR損</th>
+                        <th style="padding:6px 8px;">總損耗</th>
+                        <th style="text-align:center; padding:6px 8px; color:#0284c7; font-weight:700;">轉換效率 η</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${document.getElementById('pfc_eff_table_body')?.innerHTML || ''}
+                </tbody>
+            </table>
+        </div>
+
         ${chart1Img || chart2Img ? `
         <div class="pdf-sec" style="page-break-before: always;">
-            <div class="pdf-sec-title">6. 電流波形與偏磁特性曲線 (Waveforms & DC Bias Characteristics)</div>
+            <div class="pdf-sec-title">7. 電流波形與偏磁特性曲線 (Waveforms & DC Bias Characteristics)</div>
             <div style="display:flex; flex-direction:column; gap:16px;">
                 ${chart1Img ? `
                 <div style="text-align:center;">
@@ -8833,9 +10481,59 @@ function generateLLCReport() {
             ${makePdfEq('二次側電流最大點時間 tnom 與峰值 Ispk', `t_{nom} = \\frac{\\arccos\\left( \\frac{N \\cdot (V_{o\\_nom} + LLC\\_V_f)}{L_m \\cdot \\omega_{cr} \\cdot I_{pknom}} \\right) - \\theta_{nom}}{\\omega_{cr}} = ${(tnom * 1e6).toFixed(2)} \\ \\mu\\text{s} \\quad , \\quad I_{spk} = N \\cdot I_{psnom}(t_{nom}) = ${ispk.toFixed(2)} \\text{ A}`)}
         </div>
 
+        <div class="pdf-sec">
+            <div class="pdf-sec-title">5. 半導體開關與二次側整流損耗 (Semiconductor &amp; Rectifier Loss)</div>
+            <table class="pdf-table">
+                <tr>
+                    <th>一次側 MOS 導通損耗 Pmos_dc</th>
+                    <td>${document.getElementById('res_llc_pmos_dc')?.textContent || '- W'}</td>
+                    <th>一次側 MOS 關斷損耗 Poff_loss</th>
+                    <td>${document.getElementById('res_llc_mos_poff')?.textContent || '- W'}</td>
+                </tr>
+                <tr>
+                    <th>一次側閘極驅動損耗 Pgate_pri</th>
+                    <td>${document.getElementById('res_llc_mos_pgate')?.textContent || '- W'}</td>
+                    <th>一次側 MOS 總損耗 Pmos_pri</th>
+                    <td><strong>${document.getElementById('res_llc_pmos_total')?.textContent || '- W'}</strong></td>
+                </tr>
+                <tr>
+                    <th>二次側整流方式</th>
+                    <td>${(document.getElementById('llc_rectifier_type')?.value || 'sr') === 'sr' ? '⚡ SR 同步整流' : '🔌 Diode 二極體整流'}</td>
+                    <th>二次側整流總損耗 Psec_loss</th>
+                    <td><strong>${(document.getElementById('llc_rectifier_type')?.value || 'sr') === 'sr' ? (document.getElementById('res_llc_psr_total')?.textContent || '- W') : (document.getElementById('res_llc_pdiode')?.textContent || '- W')}</strong></td>
+                </tr>
+                <tr>
+                    <th>整機半導體開關總損耗 Psemi_total</th>
+                    <td colspan="3"><strong>${document.getElementById('res_llc_semi_total')?.textContent || '- W'}</strong></td>
+                </tr>
+                <tr>
+                    <th>變壓器磁芯鐵損 Pcore_loss</th>
+                    <td>${document.getElementById('res_llc_pcore_loss')?.textContent || '- W'}</td>
+                    <th>變壓器總銅損 Pcu_total</th>
+                    <td>${document.getElementById('res_llc_pcu_total')?.textContent || '- W'}</td>
+                </tr>
+                <tr>
+                    <th>變壓器總損耗 Pxfmr_total</th>
+                    <td><strong>${document.getElementById('res_llc_pxfmr_total')?.textContent || '- W'}</strong></td>
+                    <th>變壓器轉換效率 η_xfmr</th>
+                    <td><strong>${document.getElementById('res_llc_xfmr_eff')?.textContent || '- %'}</strong></td>
+                </tr>
+                <tr>
+                    <th>系統總損耗 (半導體 + 變壓器)</th>
+                    <td colspan="3"><strong style="color:#0f172a; font-size:13px;">${document.getElementById('res_llc_system_total_loss')?.textContent || '- W'}</strong></td>
+                </tr>
+            </table>
+
+            ${makePdfEq('一次側 MOS 導通損耗 Pmos_dc', `P_{mos\\_dc} = N_{sw} \\cdot P_{cs} \\cdot I_{mos\\_rms}^2 \\cdot R_{Dson\\_100} = ${document.getElementById('res_llc_pmos_dc')?.textContent || '- W'}`)}
+            ${(document.getElementById('llc_rectifier_type')?.value || 'sr') === 'sr' 
+                ? makePdfEq('二次側 SR 導通與死區總損耗', `P_{sr\\_total} = P_{sr\\_cond} + P_{sr\\_body} + P_{sr\\_gate} = ${document.getElementById('res_llc_psr_total')?.textContent || '- W'}`)
+                : makePdfEq('二次側二極體導通損耗', `P_{diode\\_loss} = I_{out} \\cdot Diode\\_V_F = ${document.getElementById('res_llc_pdiode')?.textContent || '- W'}`)}
+            ${makePdfEq('變壓器損耗與轉換效率', 'P_{xfmr\\_total} = P_{core\\_loss} + P_{cu\\_pri} + P_{cu\\_sec} = ' + (document.getElementById('res_llc_pxfmr_total')?.textContent || '- W') + ' \\quad , \\quad \\eta_{xfmr} = ' + (document.getElementById('res_llc_xfmr_eff')?.textContent || '- %'))}
+        </div>
+
         ${gainChartImg || priWaveImg || secWaveImg ? `
         <div class="pdf-sec" style="page-break-before: always;">
-            <div class="pdf-sec-title">5. 增益曲線與時域電流波形圖 (Gain Curve & Current Waveforms)</div>
+            <div class="pdf-sec-title">6. 增益曲線與時域電流波形圖 (Gain Curve & Current Waveforms)</div>
             <div style="display:flex; flex-direction:column; gap:16px;">
                 ${gainChartImg ? `
                 <div style="text-align:center;">
@@ -9079,11 +10777,28 @@ function generateFlybackReport() {
                     <th>RCD 鉗位電容 Csn</th>
                     <td>${(csn * 1e9).toFixed(2)} nF</td>
                 </tr>
+                <tr>
+                    <th>一次側 MOS 總損耗 Pmos_total</th>
+                    <td><strong>${document.getElementById('res_fb_pmos_total')?.textContent || '- W'}</strong></td>
+                    <th>變壓器總銅損 Copper_loss</th>
+                    <td>${document.getElementById('res_fb_copper_loss')?.textContent || '- W'}</td>
+                </tr>
+                <tr>
+                    <th>磁芯鐵損 Ferrite_loss</th>
+                    <td>${document.getElementById('res_fb_ferrite_loss')?.textContent || '- W'}</td>
+                    <th>輸出二極體損耗 Pdiode_loss</th>
+                    <td>${document.getElementById('res_fb_pdiode')?.textContent || '- W'}</td>
+                </tr>
+                <tr>
+                    <th>系統轉換器總損耗 Total_loss</th>
+                    <td colspan="3"><strong style="color:#0f172a; font-size:13px;">${document.getElementById('res_fb_total_loss')?.textContent || '-'}</strong></td>
+                </tr>
             </table>
 
             ${makePdfEq('MOSFET 漏極最高電壓應力 Vds_MAX', `V_{ds\\_MAX} = \\frac{V_{in\\_MAX} + N \\cdot V_s}{0.7} = \\frac{${vin_max} + ${n_turns_ratio} \\times ${vs.toFixed(2)}}{0.7} = ${vds_max.toFixed(1)} \\text{ V}`)}
             ${makePdfEq('次級整流二極體反向電壓 Vdr', `V_{dr} = \\frac{V_{out\\_MAX} + V_{in\\_MAX} \\cdot \\frac{N_{s\\_turn}}{N_{p\\_turn}}}{0.7} = \\frac{${vo_max} + ${vin_max} \\times \\frac{${ns_turn}}{${np_turn}}}{0.7} = ${vdr.toFixed(1)} \\text{ V}`)}
             ${makePdfEq('RCD 吸收電阻 Rsn 與吸收電容 Csn', `R_{sn} = \\frac{2 \\cdot V_{clamp} \\cdot [V_{clamp} - N \\cdot (V_o + V_f)]}{L_{pleak} \\cdot I_{ppk\\_Ho}^2 \\cdot f_s} = ${(rsn / 1000).toFixed(2)} \\text{ k}\\Omega \\quad , \\quad C_{sn} = ${(csn * 1e9).toFixed(2)} \\text{ nF}`)}
+            ${makePdfEq('一次側 MOSFET 損耗與系統總損耗', 'P_{mos\\_total} = P_{mos\\_cond} + P_{mos\\_off} + P_{mos\\_coss} + P_{mos\\_gate} = ' + (document.getElementById('res_fb_pmos_total')?.textContent || '- W') + ' \\quad , \\quad P_{total} = ' + (document.getElementById('res_fb_total_loss')?.textContent || '- W'))}
         </div>
 
         ${chart1Img || chart2Img ? `
@@ -9105,6 +10820,62 @@ function generateFlybackReport() {
     `;
 }
 
+function generateEfficiencyReport() {
+    const effChartCanvas = document.getElementById('systemEfficiencyChart');
+    let chartImg = '';
+    if (effChartCanvas) {
+        try { chartImg = effChartCanvas.toDataURL('image/png'); } catch (_) {}
+    }
+    const tableBody = document.getElementById('sys_eff_table_body')?.innerHTML || '';
+    const tierBadge = document.getElementById('eff_system_tier_badge')?.textContent || '80 PLUS 評估中';
+
+    return `
+        <div style="text-align:center; margin-bottom:24px; padding-bottom:12px; border-bottom:2px solid #0284c7;">
+            <div style="font-size:22px; font-weight:800; color:#0f172a; margin-bottom:6px;">📈 全機綜合效率與 80 PLUS 評估報告書</div>
+            <div style="font-size:13px; color:#64748b;">Boost PFC + LLC Resonant 串聯雙級高效率拓撲架構</div>
+            <div style="display:inline-block; margin-top:8px; padding:4px 12px; background:#eff6ff; color:#0284c7; border:1px solid #bfdbfe; border-radius:20px; font-weight:700; font-size:12.5px;">
+                ${tierBadge}
+            </div>
+        </div>
+
+        <div class="pdf-section">
+            <div class="pdf-sec-title">1. 多負載點轉換效率與 80 PLUS 標準對照表 (230V EU Internal)</div>
+            <table class="pdf-table">
+                <thead>
+                    <tr style="background:#f1f5f9; text-align:center;">
+                        <th style="text-align:left;">負載點 (Load)</th>
+                        <th>系統輸出 Pout</th>
+                        <th>PFC 級效率</th>
+                        <th>LLC 級效率</th>
+                        <th style="color:#0284c7; font-weight:700;">全機總效率 η_sys</th>
+                        <th>全機總損耗</th>
+                        <th>80 PLUS 目標標準門檻</th>
+                        <th>目標判定</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableBody}
+                </tbody>
+            </table>
+        </div>
+
+        ${chartImg ? `
+        <div class="pdf-section">
+            <div class="pdf-sec-title">2. 全負載效率曲線圖 (10% ~ 100% Load &amp; 80 PLUS 標竿)</div>
+            <div style="text-align:center; padding:10px 0;">
+                <img src="${chartImg}" style="max-width:100%; height:auto; border:1px solid #cbd5e1; border-radius:6px;">
+            </div>
+        </div>` : ''}
+
+        <div class="pdf-section">
+            <div class="pdf-sec-title">3. 系統各級損耗分配分析 (@ 100% 滿載)</div>
+            <div style="font-size:12.5px; line-height:1.6; color:#334155;">
+                ${document.getElementById('sys_loss_breakdown_content')?.innerHTML || ''}
+            </div>
+        </div>
+    `;
+}
+
 function exportCalculationPDF() {
     const page = getCurrentActivePage();
     let title = '';
@@ -9115,6 +10886,9 @@ function exportCalculationPDF() {
     } else if (page === 'llc') {
         title = '⚡ LLC 諧振電源轉換器工程計算書';
         html = generateLLCReport();
+    } else if (page === 'efficiency') {
+        title = '📈 全機綜合效率與 80 PLUS 評估報告書';
+        html = generateEfficiencyReport();
     } else {
         title = '⚡ Flyback 反激電源轉換器工程計算書';
         html = generateFlybackReport();
@@ -9123,20 +10897,623 @@ function exportCalculationPDF() {
 }
 
 
+// ==================== 全域狀態持久化與自動儲存 (LocalStorage Auto-Persistence) ====================
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        saveAllCalculatorState();
+    }, 250);
+}
+
+function saveAllCalculatorState() {
+    try {
+        const state = {};
+        const elements = document.querySelectorAll('input, select, textarea');
+        elements.forEach(el => {
+            if (!el.id) return;
+            // 跳過唯讀計算輸出欄位、檔案上傳與特殊控制項
+            if (el.readOnly || el.hasAttribute('readonly')) return;
+            if (el.type === 'file' || el.type === 'button' || el.type === 'submit') return;
+            if (el.id === 'lang_select') return;
+
+            if (el.type === 'checkbox') {
+                state[el.id] = el.checked;
+            } else if (el.type === 'radio') {
+                if (el.checked) {
+                    state[el.name || el.id] = el.value;
+                }
+            } else {
+                state[el.id] = el.value;
+            }
+        });
+        localStorage.setItem('powercalc_all_inputs', JSON.stringify(state));
+    } catch (e) {
+        console.warn('Failed to save calculator state:', e);
+    }
+}
+
+function restoreAllCalculatorState() {
+    try {
+        const raw = localStorage.getItem('powercalc_all_inputs');
+        if (!raw) return false;
+        const state = JSON.parse(raw);
+        if (!state || typeof state !== 'object') return false;
+
+        Object.keys(state).forEach(id => {
+            const val = state[id];
+            const el = document.getElementById(id);
+            if (el && !el.readOnly && !el.hasAttribute('readonly') && el.type !== 'file') {
+                if (el.type === 'checkbox') {
+                    el.checked = !!val;
+                } else if (el.type === 'radio') {
+                    el.checked = (el.value === val);
+                } else {
+                    el.value = val;
+                }
+            } else {
+                const radios = document.querySelectorAll(`input[type="radio"][name="${id}"]`);
+                radios.forEach(r => {
+                    r.checked = (r.value === val);
+                });
+            }
+        });
+        if (typeof updateCustomFormulaLatexPreviews === 'function') {
+            updateCustomFormulaLatexPreviews();
+        }
+        return true;
+    } catch (e) {
+        console.error('Failed to restore calculator state:', e);
+        return false;
+    }
+}
+
+function resetAllCalculatorState() {
+    const confirmMsg = currentLang === 'en'
+        ? 'Are you sure you want to reset all parameters to default values? All saved settings will be cleared.'
+        : (currentLang === 'vi'
+            ? 'Bạn có chắc chắn muốn đặt lại tất cả thông số về mặc định không? Mọi dữ liệu đã lưu sẽ bị xóa.'
+            : '確定要將所有計算參數恢復為預設值嗎？所有已儲存的設定將會被清除。');
+    if (confirm(confirmMsg)) {
+        try {
+            localStorage.removeItem('powercalc_all_inputs');
+            localStorage.removeItem('powercalc_active_page');
+        } catch (_) {}
+        window.location.reload();
+    }
+}
+
+// ==================== 全機效率與 80 PLUS 分析專頁運算函數 ====================
+function calcEfficiencyPage() {
+    // 確保 PFC 與 LLC 具有最新計算數據
+    if (!window.lastPfcMultiLoadEff) calcPFC();
+    if (!window.lastLlcMultiLoadEff) calcLLC();
+
+    const pfcList230 = window.lastPfcMultiLoadEff230 || [
+        { loadPct: 100, pout: 400, eff: 98.5, totalLoss: 6.1, coreLoss: 1.2, wireLoss: 1.1, mosLoss: 2.2, diodeLoss: 0.8, bulkLoss: 0.3, ctrlLoss: 0.5 },
+        { loadPct: 50, pout: 200, eff: 98.8, totalLoss: 2.4, coreLoss: 1.1, wireLoss: 0.3, mosLoss: 0.8, diodeLoss: 0.4, bulkLoss: 0.1, ctrlLoss: 0.5 },
+        { loadPct: 20, pout: 80, eff: 98.0, totalLoss: 1.6, coreLoss: 1.0, wireLoss: 0.1, mosLoss: 0.3, diodeLoss: 0.2, bulkLoss: 0.05, ctrlLoss: 0.5 },
+        { loadPct: 10, pout: 40, eff: 96.0, totalLoss: 1.7, coreLoss: 1.0, wireLoss: 0.05, mosLoss: 0.2, diodeLoss: 0.1, bulkLoss: 0.02, ctrlLoss: 0.5 }
+    ];
+
+    const pfcList115 = window.lastPfcMultiLoadEff115 || [
+        { loadPct: 100, pout: 400, eff: 96.7, totalLoss: 13.6, coreLoss: 2.0, wireLoss: 4.2, mosLoss: 4.8, diodeLoss: 1.2, bulkLoss: 0.9, ctrlLoss: 0.5 },
+        { loadPct: 50, pout: 200, eff: 97.5, totalLoss: 5.1, coreLoss: 1.8, wireLoss: 1.1, mosLoss: 1.4, diodeLoss: 0.5, bulkLoss: 0.2, ctrlLoss: 0.5 },
+        { loadPct: 20, pout: 80, eff: 97.0, totalLoss: 2.5, coreLoss: 1.6, wireLoss: 0.2, mosLoss: 0.4, diodeLoss: 0.2, bulkLoss: 0.05, ctrlLoss: 0.5 },
+        { loadPct: 10, pout: 40, eff: 94.5, totalLoss: 2.3, coreLoss: 1.5, wireLoss: 0.08, mosLoss: 0.3, diodeLoss: 0.1, bulkLoss: 0.02, ctrlLoss: 0.5 }
+    ];
+
+    const llcMultiLoadResults = window.lastLlcMultiLoadEff || [1.0, 0.5, 0.2, 0.1].map(k => {
+        const pk_out = 400 * k;
+        const pk_loss = 10 * (0.6 * k * k + 0.4);
+        return {
+            loadPct: Math.round(k * 100),
+            pout: pk_out,
+            pcore: 2.5,
+            pcu: 4.0 * (k * k),
+            pxfmr: 2.5 + 4.0 * (k * k),
+            pmos: 2.8 * (0.7 * k * k + 0.3),
+            psec: 2.0 * (0.8 * k * k + 0.2),
+            paux: 0.5,
+            totalLoss: pk_loss,
+            eff: (pk_out / (pk_out + pk_loss)) * 100
+        };
+    });
+
+    // 系統總效率 η_sys = η_pfc * η_llc (分別計算 230Vac 與 115Vac)
+    const sysResults230 = [0, 1, 2, 3].map(i => {
+        const pfc = pfcList230[i] || { eff: 98.5, totalLoss: 6.1, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
+        const llc = llcMultiLoadResults[i] || { eff: 97.0, totalLoss: 11, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
+        const sysEff = (pfc.eff * llc.eff) / 100;
+        const sysLoss = pfc.totalLoss + llc.totalLoss;
+        return {
+            loadPct: pfc.loadPct,
+            pout: llc.pout,
+            pfcEff: pfc.eff,
+            llcEff: llc.eff,
+            sysEff: sysEff,
+            sysLoss: sysLoss
+        };
+    });
+
+    const sysResults115 = [0, 1, 2, 3].map(i => {
+        const pfc = pfcList115[i] || { eff: 96.7, totalLoss: 13.6, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
+        const llc = llcMultiLoadResults[i] || { eff: 97.0, totalLoss: 11, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
+        const sysEff = (pfc.eff * llc.eff) / 100;
+        const sysLoss = pfc.totalLoss + llc.totalLoss;
+        return {
+            loadPct: pfc.loadPct,
+            pout: llc.pout,
+            pfcEff: pfc.eff,
+            llcEff: llc.eff,
+            sysEff: sysEff,
+            sysLoss: sysLoss
+        };
+    });
+
+    // 80 PLUS 標竿標準對比 (依使用者於下拉選單選取之等級: 鈦金 / 白金 / 金牌)
+    const tierSelectEl = document.getElementById('eff_target_tier_select');
+    const selectedTier = tierSelectEl ? tierSelectEl.value : 'titanium';
+
+    const TIER_SPECS = {
+        titanium: {
+            title115: '80 PLUS Titanium (115V EU) 標準門檻',
+            title230: '80 PLUS Titanium (230V EU) 標準門檻',
+            badgeLabel: '🏆 80 PLUS Titanium (鈦金)',
+            color: '#8b5cf6',
+            targets115: { 100: 90.0, 50: 94.0, 20: 92.0, 10: 90.0 },
+            targets230: { 100: 91.0, 50: 96.0, 20: 94.0, 10: 90.0 }
+        },
+        platinum: {
+            title115: '80 PLUS Platinum (115V EU) 標準門檻',
+            title230: '80 PLUS Platinum (230V EU) 標準門檻',
+            badgeLabel: '💎 80 PLUS Platinum (白金)',
+            color: '#0ea5e9',
+            targets115: { 100: 89.0, 50: 92.0, 20: 90.0, 10: 80.0 },
+            targets230: { 100: 90.0, 50: 94.0, 20: 92.0, 10: 80.0 }
+        },
+        gold: {
+            title115: '80 PLUS Gold (115V EU) 標準門檻',
+            title230: '80 PLUS Gold (230V EU) 標準門檻',
+            badgeLabel: '🥇 80 PLUS Gold (金牌)',
+            color: '#eab308',
+            targets115: { 100: 87.0, 50: 90.0, 20: 87.0, 10: 75.0 },
+            targets230: { 100: 88.0, 50: 92.0, 20: 90.0, 10: 75.0 }
+        }
+    };
+
+    const curTier = TIER_SPECS[selectedTier] || TIER_SPECS.titanium;
+
+    // 更新 4 大 KPI 卡片 (同時展示 230Vac 與 115Vac 總效率)
+    const setKpiCard = (prefix, idx) => {
+        const r230 = sysResults230[idx];
+        const r115 = sysResults115[idx];
+        const valEl = document.getElementById(`sys_eff_${prefix}_val`);
+        if (valEl) valEl.textContent = `${r230.sysEff.toFixed(2)} %`;
+        const subEl = document.getElementById(`sys_eff_${prefix}_sub`);
+        if (subEl) subEl.textContent = `230V: ${r230.sysEff.toFixed(1)}% (${r230.sysLoss.toFixed(1)}W) | 115V: ${r115.sysEff.toFixed(1)}% (${r115.sysLoss.toFixed(1)}W)`;
+    };
+    setKpiCard('100', 0);
+    setKpiCard('50', 1);
+    setKpiCard('20', 2);
+    setKpiCard('10', 3);
+
+    // 更新表頭門檻標題
+    const thTarget230 = document.getElementById('th_target_tier_230');
+    if (thTarget230) thTarget230.textContent = curTier.title230;
+    const thTarget115 = document.getElementById('th_target_tier_115');
+    if (thTarget115) thTarget115.textContent = curTier.title115;
+
+    let passAll230 = true;
+    let passAll115 = true;
+
+    // ==================== 填充表格一：230Vac (230V EU) ====================
+    const tbody230 = document.getElementById('sys_eff_table_body_230');
+    if (tbody230) {
+        tbody230.innerHTML = '';
+        sysResults230.forEach(r => {
+            const targetVal = curTier.targets230[r.loadPct] || 90.0;
+            const diff = r.sysEff - targetVal;
+            const isPass = (diff >= -0.001);
+            if (!isPass) passAll230 = false;
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.innerHTML = `
+                <td style="padding:9px; text-align:left; font-weight:600;">${r.loadPct}% (${r.loadPct===100?'滿載':r.loadPct===50?'半載':r.loadPct===20?'輕載':'極輕載'})</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace;">${r.pout.toFixed(1)} W</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; color:#10b981;">${r.pfcEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; color:#f59e0b;">${r.llcEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent); font-size:1.05rem;">${r.sysEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace;">${r.sysLoss.toFixed(1)} W</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:${curTier.color};">${targetVal.toFixed(1)} %</td>
+                <td style="padding:9px; font-weight:700;">
+                    ${isPass
+                        ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
+                        : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`}
+                </td>
+            `;
+            tbody230.appendChild(tr);
+        });
+    }
+
+    // ==================== 填充表格二：115Vac (115V EU / US) ====================
+    const tbody115 = document.getElementById('sys_eff_table_body_115');
+    if (tbody115) {
+        tbody115.innerHTML = '';
+        sysResults115.forEach(r => {
+            const targetVal = curTier.targets115[r.loadPct] || 90.0;
+            const diff = r.sysEff - targetVal;
+            const isPass = (diff >= -0.001);
+            if (!isPass) passAll115 = false;
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.innerHTML = `
+                <td style="padding:9px; text-align:left; font-weight:600;">${r.loadPct}% (${r.loadPct===100?'滿載':r.loadPct===50?'半載':r.loadPct===20?'輕載':'極輕載'})</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace;">${r.pout.toFixed(1)} W</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; color:#3b82f6;">${r.pfcEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; color:#f59e0b;">${r.llcEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent); font-size:1.05rem;">${r.sysEff.toFixed(2)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace;">${r.sysLoss.toFixed(1)} W</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:#3b82f6;">${targetVal.toFixed(1)} %</td>
+                <td style="padding:9px; font-weight:700;">
+                    ${isPass
+                        ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
+                        : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`}
+                </td>
+            `;
+            tbody115.appendChild(tr);
+        });
+    }
+
+    // 綜合判定徽章
+    const badge = document.getElementById('eff_system_tier_badge');
+    if (badge) {
+        if (passAll230 && passAll115) {
+            badge.textContent = `${curTier.badgeLabel} 230V & 115V 全數達標 (Pass)`;
+            badge.style.color = '#10b981';
+            badge.style.borderColor = '#10b981';
+        } else if (passAll230) {
+            badge.textContent = `${curTier.badgeLabel} 230V EU 達標 / 115V 待優化`;
+            badge.style.color = '#3b82f6';
+            badge.style.borderColor = '#3b82f6';
+        } else {
+            badge.textContent = `${curTier.badgeLabel} 未完全達標`;
+            badge.style.color = '#ef4444';
+            badge.style.borderColor = '#ef4444';
+        }
+    }
+
+    // 繪製效率曲線圖表 (含 230V 與 115V 全負載曲線)
+    drawSystemEfficiencyChart(sysResults230, sysResults115);
+
+    // 繪製系統各級損耗分配分析 (支援 100%、50%、20%、10% 與 230V / 115V 雙電壓)
+    renderSystemLossBreakdown();
+
+    if (typeof renderAllLatexFormulas === 'function') {
+        renderAllLatexFormulas();
+    }
+}
+
+// 繪製系統各級損耗分配分析 (動態切換 230Vac / 115Vac 及 100% / 50% / 20% / 10% 負載)
+function renderSystemLossBreakdown() {
+    const vacSelect = document.getElementById('sys_loss_vac_select');
+    const loadSelect = document.getElementById('sys_loss_load_select');
+    const selVac = parseInt(vacSelect ? vacSelect.value : '230', 10);
+    const selLoad = parseInt(loadSelect ? loadSelect.value : '100', 10);
+
+    const loadIdxMap = { 100: 0, 50: 1, 20: 2, 10: 3 };
+    const idx = loadIdxMap[selLoad] !== undefined ? loadIdxMap[selLoad] : 0;
+
+    const pfcList = (selVac === 115) ? (window.lastPfcMultiLoadEff115 || []) : (window.lastPfcMultiLoadEff230 || []);
+    const llcList = window.lastLlcMultiLoadEff || [];
+
+    const pfcData = pfcList[idx] || { coreLoss: 2, wireLoss: 1.5, mosLoss: 4, diodeLoss: 1.5, bulkLoss: 1, ctrlLoss: 1.5, totalLoss: 11.5, eff: 97 };
+    const llcData = llcList[idx] || { pcore: 2.5, pcu: 4.0, pmos: 2.8, psec: 2.0, paux: 0.5, totalLoss: 11.8, eff: 97 };
+
+    const totalPfcLoss = pfcData.totalLoss !== undefined ? pfcData.totalLoss : 10;
+    const totalLlcLoss = llcData.totalLoss !== undefined ? llcData.totalLoss : 11;
+    const totalSysLoss = totalPfcLoss + totalLlcLoss;
+
+    const pfcPct = totalSysLoss > 0 ? ((totalPfcLoss / totalSysLoss) * 100).toFixed(1) : 50;
+    const llcPct = totalSysLoss > 0 ? ((totalLlcLoss / totalSysLoss) * 100).toFixed(1) : 50;
+
+    // 更新 Badge
+    const badge = document.getElementById('sys_loss_total_badge');
+    if (badge) {
+        badge.textContent = `${selVac}Vac @ ${selLoad}% Load: Total Loss = ${totalSysLoss.toFixed(2)} W`;
+    }
+
+    const lossContainer = document.getElementById('sys_loss_breakdown_content');
+    if (lossContainer) {
+        lossContainer.innerHTML = `
+            <div style="margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:6px;">
+                    <span style="color:#3b82f6;">⚡ 前級 PFC 損耗 (${selVac}Vac): ${totalPfcLoss.toFixed(2)} W (${pfcPct}%)</span>
+                    <span style="color:#f59e0b;">⚡ 後級 LLC 損耗: ${totalLlcLoss.toFixed(2)} W (${llcPct}%)</span>
+                </div>
+                <div style="display:flex; height:20px; border-radius:10px; overflow:hidden; border:1px solid var(--border-color); background:rgba(0,0,0,0.05);">
+                    <div style="width:${pfcPct}%; background:#3b82f6; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; transition:width 0.3s;" title="PFC 損耗 ${pfcPct}%">${pfcPct}%</div>
+                    <div style="width:${llcPct}%; background:#f59e0b; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; transition:width 0.3s;" title="LLC 損耗 ${llcPct}%">${llcPct}%</div>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; font-size:13px; margin-top:14px;">
+                <div style="background:var(--elevation-tint, rgba(59,130,246,0.04)); padding:14px; border-radius:10px; border:1px solid var(--border-color);">
+                    <div style="font-weight:700; color:#3b82f6; font-size:14px; margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;">🔹 PFC 級主要損耗細項 (${selVac}Vac @ ${selLoad}% 負載)</div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 電感磁芯損耗 Pcore:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.coreLoss||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 電感繞線銅損 Pwire:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.wireLoss||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 主開關 MOS 損耗 Pmos:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.mosLoss||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• Boost 二極體損耗 Pdiode:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.diodeLoss||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 大電容 ESR 損耗 Pbulk:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.bulkLoss||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 控制與輔助損耗 Pctrl:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(pfcData.ctrlLoss||1.5).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:5px 0 0; margin-top:6px; border-top:1px dashed var(--border-color); font-weight:700; color:#3b82f6;"><span>PFC 級小計總損耗:</span><span style="font-family:'DM Mono',monospace; font-size:1.05rem;">${totalPfcLoss.toFixed(2)} W</span></div>
+                </div>
+                <div style="background:var(--elevation-tint, rgba(245,158,11,0.04)); padding:14px; border-radius:10px; border:1px solid var(--border-color);">
+                    <div style="font-weight:700; color:#f59e0b; font-size:14px; margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;">🔸 LLC 級主要損耗細項 (@ ${selLoad}% 負載)</div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 變壓器磁芯鐵損 Pcore:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(llcData.pcore||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 變壓器繞組銅損 Pcu:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(llcData.pcu||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 一次側 MOS 總損耗 Pmos:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(llcData.pmos||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 二次側整流損耗 Psec:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(llcData.psec||0).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>• 諧振腔及控制輔助 Paux:</span><span style="font-family:'DM Mono',monospace; font-weight:600;">${(llcData.paux||0.5).toFixed(2)} W</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:5px 0 0; margin-top:28px; border-top:1px dashed var(--border-color); font-weight:700; color:#f59e0b;"><span>LLC 級小計總損耗:</span><span style="font-family:'DM Mono',monospace; font-size:1.05rem;">${totalLlcLoss.toFixed(2)} W</span></div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 填充全工況 8 點綜合彙總表
+    const matrixTbody = document.getElementById('sys_loss_matrix_table_body');
+    if (matrixTbody) {
+        matrixTbody.innerHTML = '';
+        [230, 115].forEach(v => {
+            const is230 = (v === 230);
+            const pfcArr = is230 ? (window.lastPfcMultiLoadEff230 || []) : (window.lastPfcMultiLoadEff115 || []);
+            [0, 1, 2, 3].forEach(i => {
+                const pfc = pfcArr[i] || { loadPct: [100, 50, 20, 10][i], pout: 400 * [1, 0.5, 0.2, 0.1][i], coreLoss: 2, wireLoss: 1.5, mosLoss: 4, diodeLoss: 1.5, bulkLoss: 1, totalLoss: 10, eff: 98 };
+                const llc = llcList[i] || { loadPct: [100, 50, 20, 10][i], pxfmr: 6.5, pmos: 2.8, psec: 2.0, totalLoss: 11.8, eff: 97 };
+                const sysLoss = pfc.totalLoss + llc.totalLoss;
+                const sysEff = (pfc.eff * llc.eff) / 100;
+                const isSelectedRow = (selVac === v && selLoad === pfc.loadPct);
+
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                tr.style.cursor = 'pointer';
+                if (isSelectedRow) {
+                    tr.style.background = is230 ? 'rgba(16,185,129,0.12)' : 'rgba(59,130,246,0.12)';
+                }
+                tr.onclick = () => {
+                    if (vacSelect) vacSelect.value = String(v);
+                    if (loadSelect) loadSelect.value = String(pfc.loadPct);
+                    renderSystemLossBreakdown();
+                };
+
+                tr.innerHTML = `
+                    <td style="padding:6px 8px; text-align:left; font-weight:700; color:${is230 ? '#10b981' : '#3b82f6'};">${v}Vac</td>
+                    <td style="padding:6px 8px; text-align:left; font-weight:600;">${pfc.loadPct}%</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${pfc.pout.toFixed(0)} W</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.coreLoss||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.wireLoss||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.mosLoss||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.diodeLoss||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.bulkLoss||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace; font-weight:700; color:#3b82f6;">${pfc.totalLoss.toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(llc.pxfmr||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(llc.pmos||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(llc.psec||0).toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace; font-weight:700; color:#f59e0b;">${llc.totalLoss.toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent);">${sysLoss.toFixed(2)}</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace; font-weight:700; color:${is230 ? '#10b981' : '#3b82f6'}; text-align:center;">${sysEff.toFixed(2)}%</td>
+                `;
+                matrixTbody.appendChild(tr);
+            });
+        });
+    }
+}
+
+// 繪製系統效率曲線圖表 (含 230Vac 與 115Vac 雙曲線)
+function drawSystemEfficiencyChart(sysResults230, sysResults115) {
+    const canvas = document.getElementById('systemEfficiencyChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || 820;
+    const h = rect.height || 400;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+
+    const padLeft = 60, padRight = 40, padTop = 30, padBottom = 45;
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    // 清空背景
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card-bg').trim() || '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    // 坐標軸範圍：X 從 10% 到 100%，Y 從 88% 到 100%
+    const minX = 10, maxX = 100;
+    const minY = 88, maxY = 100;
+
+    const xToPx = (load) => padLeft + ((load - minX) / (maxX - minX)) * plotW;
+    const yToPx = (eff) => padTop + ((maxY - eff) / (maxY - minY)) * plotH;
+
+    // 繪製背景網格線
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#e2e8f0';
+
+    // Y 軸網格線 (88% 到 100% 每 2%)
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--ink-secondary').trim() || '#64748b';
+    ctx.font = '11px "DM Mono", monospace';
+    ctx.textAlign = 'right';
+    for (let yVal = minY; yVal <= maxY; yVal += 2) {
+        const yPx = yToPx(yVal);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, yPx);
+        ctx.lineTo(w - padRight, yPx);
+        ctx.stroke();
+        ctx.fillText(yVal + '%', padLeft - 8, yPx + 4);
+    }
+
+    // X 軸網格線 (10% 到 100% 每 10%)
+    ctx.textAlign = 'center';
+    for (let xVal = minX; xVal <= maxX; xVal += 10) {
+        const xPx = xToPx(xVal);
+        ctx.beginPath();
+        ctx.moveTo(xPx, padTop);
+        ctx.lineTo(xPx, h - padBottom);
+        ctx.stroke();
+        ctx.fillText(xVal + '%', xPx, h - padBottom + 18);
+    }
+
+    // X 軸標籤
+    ctx.font = '12px "DM Sans", sans-serif';
+    ctx.fillText('負載率 Load Percentage (%)', padLeft + plotW / 2, h - padBottom + 36);
+
+    // 輔助曲線繪製器 (平滑自然樣條)
+    function drawCurve(points, color, lineWidth, isDashed) {
+        if (!points || points.length < 2) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        if (isDashed) ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        points.forEach((p, idx) => {
+            const px = xToPx(p.x);
+            const py = yToPx(p.y);
+            if (idx === 0) ctx.moveTo(px, py);
+            else {
+                const prev = points[idx - 1];
+                const prevPx = xToPx(prev.x);
+                const prevPy = yToPx(prev.y);
+                const cpX1 = prevPx + (px - prevPx) / 2;
+                const cpX2 = prevPx + (px - prevPx) / 2;
+                ctx.bezierCurveTo(cpX1, prevPy, cpX2, py, px, py);
+            }
+        });
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        points.forEach(p => {
+            const px = xToPx(p.x);
+            const py = yToPx(p.y);
+            ctx.beginPath();
+            ctx.arc(px, py, 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+    }
+
+    // 80 PLUS 標竿基準線 (依據目前選擇等級加粗標示)
+    const selectedTier = document.getElementById('eff_target_tier_select')?.value || 'titanium';
+    const titaniumPts230 = [{ x: 10, y: 90 }, { x: 20, y: 94 }, { x: 50, y: 96 }, { x: 100, y: 91 }];
+    const titaniumPts115 = [{ x: 10, y: 90 }, { x: 20, y: 92 }, { x: 50, y: 94 }, { x: 100, y: 90 }];
+    const platinumPts230 = [{ x: 20, y: 92 }, { x: 50, y: 94 }, { x: 100, y: 90 }];
+    const goldPts230 = [{ x: 20, y: 90 }, { x: 50, y: 92 }, { x: 100, y: 88 }];
+
+    if (selectedTier === 'gold') {
+        drawCurve(goldPts230, '#eab308', 2.5, true);
+        drawCurve(platinumPts230, '#94a3b8', 1.2, true);
+        drawCurve(titaniumPts230, '#818cf8', 1.2, true);
+    } else if (selectedTier === 'platinum') {
+        drawCurve(platinumPts230, '#0ea5e9', 2.5, true);
+        drawCurve(titaniumPts230, '#818cf8', 1.2, true);
+        drawCurve(goldPts230, '#eab308', 1.2, true);
+    } else {
+        drawCurve(titaniumPts230, '#6366f1', 2.2, true);
+        drawCurve(titaniumPts115, '#94a3b8', 2.0, true);
+    }
+
+    if (sysResults230 && sysResults230.length >= 4) {
+        // 230Vac 全機總效率曲線 (綠線加粗)
+        const sysPts230 = [
+            { x: 10, y: sysResults230[3].sysEff },
+            { x: 20, y: sysResults230[2].sysEff },
+            { x: 50, y: sysResults230[1].sysEff },
+            { x: 100, y: sysResults230[0].sysEff }
+        ];
+        drawCurve(sysPts230, '#10b981', 3.5, false);
+
+        // LLC 曲線
+        const llcPts = [
+            { x: 10, y: sysResults230[3].llcEff },
+            { x: 20, y: sysResults230[2].llcEff },
+            { x: 50, y: sysResults230[1].llcEff },
+            { x: 100, y: sysResults230[0].llcEff }
+        ];
+        drawCurve(llcPts, '#f59e0b', 2.2, false);
+    }
+
+    if (sysResults115 && sysResults115.length >= 4) {
+        // 115Vac 全機總效率曲線 (藍線)
+        const sysPts115 = [
+            { x: 10, y: sysResults115[3].sysEff },
+            { x: 20, y: sysResults115[2].sysEff },
+            { x: 50, y: sysResults115[1].sysEff },
+            { x: 100, y: sysResults115[0].sysEff }
+        ];
+        drawCurve(sysPts115, '#3b82f6', 3.0, false);
+    }
+}
+
+function initAutoPersistence() {
+    document.addEventListener('input', scheduleAutoSave, { passive: true });
+    document.addEventListener('change', scheduleAutoSave, { passive: true });
+    window.addEventListener('beforeunload', saveAllCalculatorState);
+    window.addEventListener('pagehide', saveAllCalculatorState);
+}
+
 window.onload = function() {
     initMaterialLibrary();
+
+    // 1. 恢復深色/淺色主題
+    try {
+        const savedTheme = localStorage.getItem('powercalc_theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('theme-dark');
+        } else if (savedTheme === 'light') {
+            document.body.classList.remove('theme-dark');
+        }
+    } catch (_) {}
+
+    // 2. 恢復所有輸入設定
+    restoreAllCalculatorState();
+
+    // 3. 呼叫相依 UI 模式切換函數
     onPFCCoreTypeChange();
+    if (typeof onPFCModeChange === 'function') onPFCModeChange();
+    if (typeof onFlybackModeChange === 'function') onFlybackModeChange();
+    if (typeof onLLCRectifierTypeChange === 'function') onLLCRectifierTypeChange();
+
+    // 4. 重新運算全頁面
+    calcPFC();
     calcLLC();
-    calcFlyback();
+    if (typeof calcFlyback === 'function') calcFlyback();
+
+    // 5. 恢復語系
     try {
         const savedLang = localStorage.getItem('powercalc_lang') || 'zh';
         changeLanguage(savedLang);
     } catch (_) {}
+
+    // 6. 恢復上次所在的分頁 (PFC / LLC / Flyback)
+    try {
+        const savedPage = localStorage.getItem('powercalc_active_page') || 'pfc';
+        switchPage(savedPage);
+    } catch (_) {
+        switchPage('pfc');
+    }
+
+    // 7. 渲染 LaTeX 數學公式
     renderAllLatexFormulas();
+
+    // 8. 啟用自動即時持久化監聽
+    initAutoPersistence();
 };
 </script>
 
 </body>
 </html>
-
-
