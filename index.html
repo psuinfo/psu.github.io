@@ -1348,15 +1348,15 @@
                     </div>
                     <div class="input-box">
                         <label>Pout_min (W)</label>
-                        <input type="number" id="pfc_pout_min" value="110" step="10" oninput="calcPFC()">
+                        <input type="number" id="pfc_pout_min" value="40" step="10" oninput="calcPFC()">
                     </div>
                     <div class="input-box">
                         <label>Pout (W)</label>
-                        <input type="number" id="pfc_pout_nom" value="550" step="10" oninput="calcPFC()">
+                        <input type="number" id="pfc_pout_nom" value="400" step="10" oninput="calcPFC()">
                     </div>
                     <div class="input-box">
                         <label>Pout_max (W)</label>
-                        <input type="number" id="pfc_pout_max" value="660" step="10" oninput="calcPFC()">
+                        <input type="number" id="pfc_pout_max" value="480" step="10" oninput="calcPFC()">
                     </div>
                 </div>
 
@@ -3943,26 +3943,12 @@
                 </div>
             </div>
 
-            <!-- 全機串聯系統轉換效率與損耗數學模型可視化區塊 (黑底高對比樣式，無論亮色/深色模式皆清晰可見) -->
-            <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px 18px; margin-bottom:20px; box-shadow:0 4px 14px rgba(0,0,0,0.15);">
-                <div style="font-weight:700; color:#38bdf8; font-size:13.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                    <span>📐 全機串聯系統轉換效率與損耗數學模型 (PFC + LLC Cascade System)</span>
-                </div>
-                <div class="fx-code" style="margin:0; padding:10px 14px; background:#1e293b !important; color:#facc15 !important; border-radius:6px; border-left:3px solid #10b981; font-size:14px;">
-η_sys = η_PFC · η_LLC<br>Pout_sys = Pout_LLC<br>Pin_sys = Pout_sys / η_sys<br>Ploss_total = Ploss_PFC + Ploss_LLC<br>Δη = η_sys - η_target
-                </div>
-                <div style="font-size:12px; color:#94a3b8; margin-top:8px;">
-                    💡 <b>物理模型</b>：全機總效率為 PFC 前級與 LLC 後級轉換效率之乘積；總損耗為兩級損耗之代數和。分別對比 230V EU 及 115V EU / US 標準門檻進行判定。
-                </div>
-            </div>
-
-            <!-- ==================== 表格一：230Vac (230V EU) 全機綜合效率與 80 PLUS 評估 ==================== -->
+            <!-- ==================== 表格一：230Vac 全機綜合效率評估 ==================== -->
             <div style="margin-bottom:24px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div style="font-size:14px; font-weight:700; color:#10b981; display:flex; align-items:center; gap:6px;">
-                        <span>🌐 230Vac (230V EU 市電規格) 全機系統綜合效率評估</span>
+                        <span>230Vac 全機綜合效率評估</span>
                     </div>
-                    <span class="badge-tag" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid #10b981;">230V EU 標竿</span>
                 </div>
                 <div class="eff-table-scroll-wrap">
                     <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
@@ -3974,7 +3960,7 @@
                                 <th style="padding:10px;">LLC 級效率</th>
                                 <th style="padding:10px; font-weight:700; color:var(--accent);">
                                     <span class="label-with-fx" style="justify-content:center;">
-                                        全機總效率 η_sys
+                                        全機總效率
                                         <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
                                             <b>全機總效率模型 (230Vac)</b>
                                             <div class="fx-code">η_sys = η_PFC · η_LLC</div>
@@ -3992,7 +3978,7 @@
                                         </span></span>
                                     </span>
                                 </th>
-                                <th style="padding:10px;" id="th_target_tier_230">80 PLUS Titanium (230V EU) 標準門檻</th>
+                                <th style="padding:10px;" id="th_target_tier_230">80 PLUS Titanium 230V 標準門檻</th>
                                 <th style="padding:10px;">目標判定</th>
                             </tr>
                         </thead>
@@ -4002,13 +3988,12 @@
                 </div>
             </div>
 
-            <!-- ==================== 表格二：115Vac (115V EU / US) 全機綜合效率與 80 PLUS 評估 ==================== -->
+            <!-- ==================== 表格二：115Vac 全機綜合效率評估 ==================== -->
             <div style="margin-bottom:12px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div style="font-size:14px; font-weight:700; color:#3b82f6; display:flex; align-items:center; gap:6px;">
-                        <span>🇺🇸 115Vac (115V EU / US 市電規格) 全機系統綜合效率評估</span>
+                        <span>115Vac 全機綜合效率評估</span>
                     </div>
-                    <span class="badge-tag" style="background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid #3b82f6;">115V 標竿</span>
                 </div>
                 <div class="eff-table-scroll-wrap">
                     <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;">
@@ -4020,7 +4005,7 @@
                                 <th style="padding:10px;">LLC 級效率</th>
                                 <th style="padding:10px; font-weight:700; color:var(--accent);">
                                     <span class="label-with-fx" style="justify-content:center;">
-                                        全機總效率 η_sys
+                                        全機總效率
                                         <span class="fx-wrap"><span class="fx-icon fx-mini">📐</span><span class="fx-popover">
                                             <b>全機總效率模型 (115Vac)</b>
                                             <div class="fx-code">η_sys = η_PFC · η_LLC</div>
@@ -4038,7 +4023,7 @@
                                         </span></span>
                                     </span>
                                 </th>
-                                <th style="padding:10px;" id="th_target_tier_115">80 PLUS Titanium (115V EU) 標準門檻</th>
+                                <th style="padding:10px;" id="th_target_tier_115">80 PLUS Titanium 115V 標準門檻</th>
                                 <th style="padding:10px;">目標判定</th>
                             </tr>
                         </thead>
@@ -4053,7 +4038,7 @@
         <div class="card" style="margin-bottom: 24px;">
             <h2>
                 <span class="label-with-fx">
-                    📈 全負載效率曲線圖 (10% ~ 100% Load & 80 PLUS 標竿)
+                    📈 全負載效率曲線圖
                     <span class="fx-wrap"><span class="fx-icon">📐 公式</span><span class="fx-popover">
                         <b>全負載效率曲線數學模型</b>
                         <div class="fx-code">Pout(k) = k · Pnom<br>Ploss(k) = Pfixed + Pcond · k² + Psw · k<br>Pin(k) = Pout(k) + Ploss(k)<br>η(k) = (Pout(k) / Pin(k)) · 100%<br>η_sys(k) = η_PFC(k) · η_LLC(k)</div>
@@ -4066,11 +4051,10 @@
                 <canvas id="systemEfficiencyChart" width="820" height="400" style="cursor: crosshair;"></canvas>
             </div>
             <div class="chart-legend" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:16px; justify-content:center;">
-                <div class="legend-item"><span class="color-dot" style="background:#10b981;"></span><b>全機總效率 η_sys (230V)</b></div>
-                <div class="legend-item"><span class="color-dot" style="background:#3b82f6;"></span><b>全機總效率 η_sys (115V)</b></div>
-                <div class="legend-item"><span class="color-dot" style="background:#f59e0b;"></span><b>LLC 後級效率 η_llc</b></div>
-                <div class="legend-item"><span class="color-dot" style="background:#6366f1; border-style:dashed;"></span>80 PLUS Titanium (230V EU)</div>
-                <div class="legend-item"><span class="color-dot" style="background:#94a3b8; border-style:dashed;"></span>80 PLUS Titanium (115V EU)</div>
+                <div class="legend-item"><span class="color-dot" style="background:#10b981;"></span><b>全機總效率 (230V)</b></div>
+                <div class="legend-item"><span class="color-dot" style="background:#3b82f6;"></span><b>全機總效率 (115V)</b></div>
+                <div class="legend-item"><span class="color-dot" style="background:#6366f1; border-style:dashed;"></span>80 PLUS Titanium (230V)</div>
+                <div class="legend-item"><span class="color-dot" style="background:#94a3b8; border-style:dashed;"></span>80 PLUS Titanium (115V)</div>
             </div>
         </div>
 
@@ -4090,8 +4074,8 @@
                     <div style="display:inline-flex; align-items:center; gap:6px;">
                         <label for="sys_loss_vac_select" style="font-size:12.5px; font-weight:600; color:var(--ink-secondary);">⚡ 市電輸入:</label>
                         <select id="sys_loss_vac_select" onchange="renderSystemLossBreakdown()" style="padding:4px 8px; font-size:12.5px; font-weight:700; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--accent); cursor:pointer;">
-                            <option value="230" selected>230Vac (高壓高效率)</option>
-                            <option value="115">115Vac (低壓大電流)</option>
+                            <option value="230" selected>230Vac</option>
+                            <option value="115">115Vac</option>
                         </select>
                     </div>
                     <!-- 負載選擇 -->
@@ -4114,7 +4098,7 @@
             <!-- 下方：全工況 8 點損耗綜合彙總表 -->
             <div style="margin-top:20px;">
                 <div style="font-size:13px; font-weight:700; margin-bottom:8px; color:var(--ink-primary); display:flex; align-items:center; gap:6px;">
-                    <span>📋 全工況 (230Vac / 115Vac × 10%~100% Load) 損耗細項與效率全覽表</span>
+                    <span>📋 全機損耗細項與效率全覽表</span>
                 </div>
                 <div class="eff-table-scroll-wrap">
                     <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right;">
@@ -5962,6 +5946,83 @@ function onPFCCoreTypeChange() {
     renderAllLatexFormulas();
 }
 
+// 單點 PFC 各負載損耗與效率計算核心 (可供 PFC 頁面與串聯系統效率頁面通用)
+function calcPfcSinglePoint(vac, pk_out, k, params) {
+    if (!params) params = window.lastPfcCalcParams;
+    if (!params) {
+        return {
+            vac,
+            loadPct: Math.round(k * 100),
+            pout: pk_out,
+            pin: pk_out * 1.02,
+            coreLoss: 1.2,
+            wireLoss: 0.5,
+            mosLoss: 2.5,
+            diodeLoss: 0.3,
+            bulkLoss: 0.7,
+            ctrlLoss: 1.5,
+            totalLoss: 6.7,
+            eff: 98.3
+        };
+    }
+    const is230 = (vac === 230);
+    const vin_pk_vac = vac * Math.SQRT2;
+    const est_eff_base = is230 ? 0.98 : 0.965;
+    const { vout, rdson_100, rcu_60, phase, bulk_esr, diode_vf, pon_loss, poff_loss, vac_min, coss_avg, f, pgate, pcore_loss } = params;
+
+    const pk_pin_est = pk_out / est_eff_base;
+    const pk_iin_rms = pk_pin_est / vac;
+
+    // MOS 導通電流 factor
+    const factor = Math.max(0, 1 - (8 * Math.SQRT2 * vac) / (3 * Math.PI * vout));
+    const pk_imos_rms = pk_iin_rms * Math.sqrt(factor);
+    const pk_mos_dc = rdson_100 * pk_imos_rms * pk_imos_rms;
+
+    // 電感繞線銅損 (隨輸入電流平方縮放)
+    const pk_wire = (rcu_60 * 1e-3) * Math.pow(pk_iin_rms, 2) * phase;
+
+    // 大電容 ESR 損耗
+    const pk_pfc_io = pk_out / vout;
+    const icrms_inner_vac = Math.max(0, (16 * vout) / (3 * Math.PI * vin_pk_vac) - est_eff_base * est_eff_base);
+    const pk_icrms = (pk_pfc_io / est_eff_base) * Math.sqrt(icrms_inner_vac);
+    const pk_bulk = pk_icrms * pk_icrms * bulk_esr;
+
+    // 二極體導通損耗
+    const pk_diode = (pk_out / vout) * diode_vf;
+
+    // MOS 開關切換損耗 (隨電流線性縮放，且開關損隨輸入電壓調整)
+    const pk_mos_sw = (pon_loss + poff_loss) * k * (vac_min / vac);
+    const pk_coss = 2 * coss_avg * vin_pk_vac * f;
+    const pk_gate = pgate;
+    const pk_mos_total = pk_mos_dc + pk_mos_sw + pk_coss + pk_gate;
+
+    // 磁芯鐵損 (230Vac 下伏秒積與 ΔB 略低，取相應比例)
+    const vsec_ratio = Math.min(1.2, Math.max(0.65, (vac * (1 - Math.min(0.95, vin_pk_vac / vout))) / (115 * (1 - 115 * Math.SQRT2 / vout))));
+    const pk_core = pcore_loss * Math.pow(vsec_ratio, 1.2) * (0.85 + 0.15 * k) * phase;
+
+    // 控制 IC 待機功率
+    const pk_ctrl = 1.5;
+
+    const pk_loss_total = pk_core + pk_wire + pk_mos_total + pk_diode + pk_bulk + pk_ctrl;
+    const pk_in = pk_out + pk_loss_total;
+    const pk_eff = pk_in > 0 ? (pk_out / pk_in) * 100 : 0;
+
+    return {
+        vac,
+        loadPct: Math.round(k * 100),
+        pout: pk_out,
+        pin: pk_in,
+        coreLoss: pk_core,
+        wireLoss: pk_wire,
+        mosLoss: pk_mos_total,
+        diodeLoss: pk_diode,
+        bulkLoss: pk_bulk,
+        ctrlLoss: pk_ctrl,
+        totalLoss: pk_loss_total,
+        eff: pk_eff
+    };
+}
+
 // 對齊 SMath 檔案 (CCM PFC 20231216.sm lines 1-287) 並支援 CCM / BCM 模式與自訂公式
 function calcPFC() {
     const modeEl = document.getElementById('pfc_mode');
@@ -5974,7 +6035,7 @@ function calcPFC() {
     const vac_max = parseFloat(document.getElementById('pfc_vac_max').value); // Vin_rms_max (264 Vac)
     const vout = parseFloat(document.getElementById('pfc_vout').value);       // Vout (400 V)
     const pout_min = parseFloat(document.getElementById('pfc_pout_min').value) || 0;
-    const pout = parseFloat(document.getElementById('pfc_pout_nom').value);   // Pout (550 W)
+    const pout = parseFloat(document.getElementById('pfc_pout_nom').value) || 400;   // Pout (400 W)
     const pout_max = parseFloat(document.getElementById('pfc_pout_max').value) || pout;
 
     const fmin = parseFloat(document.getElementById('pfc_fmin').value) * 1000;
@@ -6409,6 +6470,9 @@ function calcPFC() {
     document.getElementById('res_pfc_total_loss_cu').textContent = `${total_pfc_loss_with_wire.toFixed(2)} W`;
 
     // 6. PFC 多負載效率分析 (含 115Vac & 230Vac，100%、50%、20%、10% Load)
+    window.lastPfcCalcParams = {
+        vout, rdson_100, rcu_60, phase, bulk_esr, diode_vf, pon_loss, poff_loss, vac_min, coss_avg, f, pgate, pcore_loss
+    };
     const loadFractions = [1.0, 0.5, 0.2, 0.1];
     const vacLevels = [115, 230];
     const pfcMultiLoadResults115 = [];
@@ -6437,57 +6501,8 @@ function calcPFC() {
 
         loadFractions.forEach((k) => {
             const pk_out = pout * k;
-            const pk_pin_est = pk_out / est_eff_base;
-            const pk_iin_rms = pk_pin_est / vac;
-
-            // MOS 導通電流 factor
-            const factor = Math.max(0, 1 - (8 * Math.SQRT2 * vac) / (3 * Math.PI * vout));
-            const pk_imos_rms = pk_iin_rms * Math.sqrt(factor);
-            const pk_mos_dc = rdson_100 * pk_imos_rms * pk_imos_rms;
-
-            // 電感繞線銅損 (隨輸入電流平方縮放)
-            const pk_wire = (rcu_60 * 1e-3) * Math.pow(pk_iin_rms, 2) * phase;
-
-            // 大電容 ESR 損耗
-            const pk_pfc_io = pk_out / vout;
-            const icrms_inner_vac = Math.max(0, (16 * vout) / (3 * Math.PI * vin_pk_vac) - est_eff_base * est_eff_base);
-            const pk_icrms = (pk_pfc_io / est_eff_base) * Math.sqrt(icrms_inner_vac);
-            const pk_bulk = pk_icrms * pk_icrms * bulk_esr;
-
-            // 二極體導通損耗
-            const pk_diode = (pk_out / vout) * diode_vf;
-
-            // MOS 開關切換損耗 (隨電流線性縮放，且開關損隨輸入電壓調整)
-            const pk_mos_sw = (pon_loss + poff_loss) * k * (vac_min / vac);
-            const pk_coss = 2 * coss_avg * vin_pk_vac * f;
-            const pk_gate = pgate;
-            const pk_mos_total = pk_mos_dc + pk_mos_sw + pk_coss + pk_gate;
-
-            // 磁芯鐵損 (230Vac 下伏秒積與 ΔB 略低，取相應比例)
-            const vsec_ratio = Math.min(1.2, Math.max(0.65, (vac * (1 - Math.min(0.95, vin_pk_vac / vout))) / (115 * (1 - 115 * Math.SQRT2 / vout))));
-            const pk_core = pcore_loss * Math.pow(vsec_ratio, 1.2) * (0.85 + 0.15 * k) * phase;
-
-            // 控制 IC 待機功率
-            const pk_ctrl = 1.5;
-
-            const pk_loss_total = pk_core + pk_wire + pk_mos_total + pk_diode + pk_bulk + pk_ctrl;
-            const pk_in = pk_out + pk_loss_total;
-            const pk_eff = pk_in > 0 ? (pk_out / pk_in) * 100 : 0;
-
-            const itemRes = {
-                vac,
-                loadPct: Math.round(k * 100),
-                pout: pk_out,
-                pin: pk_in,
-                coreLoss: pk_core,
-                wireLoss: pk_wire,
-                mosLoss: pk_mos_total,
-                diodeLoss: pk_diode,
-                bulkLoss: pk_bulk,
-                ctrlLoss: pk_ctrl,
-                totalLoss: pk_loss_total,
-                eff: pk_eff
-            };
+            const itemRes = calcPfcSinglePoint(vac, pk_out, k, window.lastPfcCalcParams);
+            const { pin: pk_in, coreLoss: pk_core, wireLoss: pk_wire, mosLoss: pk_mos_total, diodeLoss: pk_diode, bulkLoss: pk_bulk, ctrlLoss: pk_ctrl, totalLoss: pk_loss_total, eff: pk_eff } = itemRes;
 
             if (is230) {
                 pfcMultiLoadResults230.push(itemRes);
@@ -10047,7 +10062,7 @@ function generatePFCReport() {
     const vac_nom = parseFloat(document.getElementById('pfc_vac_nom')?.value) || 115;
     const vac_max = parseFloat(document.getElementById('pfc_vac_max')?.value) || 264;
     const vout = parseFloat(document.getElementById('pfc_vout')?.value) || 400;
-    const pout = parseFloat(document.getElementById('pfc_pout_nom')?.value) || 550;
+    const pout = parseFloat(document.getElementById('pfc_pout_nom')?.value) || 400;
     const pout_max = parseFloat(document.getElementById('pfc_pout_max')?.value) || pout;
     const eff = (parseFloat(document.getElementById('pfc_eff')?.value) || 90) / 100;
     const f = (parseFloat(document.getElementById('pfc_fsw')?.value) || 90) * 1000;
@@ -10847,7 +10862,7 @@ function generateEfficiencyReport() {
                         <th>系統輸出 Pout</th>
                         <th>PFC 級效率</th>
                         <th>LLC 級效率</th>
-                        <th style="color:#0284c7; font-weight:700;">全機總效率 η_sys</th>
+                        <th style="color:#0284c7; font-weight:700;">全機總效率</th>
                         <th>全機總損耗</th>
                         <th>80 PLUS 目標標準門檻</th>
                         <th>目標判定</th>
@@ -10861,7 +10876,7 @@ function generateEfficiencyReport() {
 
         ${chartImg ? `
         <div class="pdf-section">
-            <div class="pdf-sec-title">2. 全負載效率曲線圖 (10% ~ 100% Load &amp; 80 PLUS 標竿)</div>
+            <div class="pdf-sec-title">2. 全負載效率曲線圖</div>
             <div style="text-align:center; padding:10px 0;">
                 <img src="${chartImg}" style="max-width:100%; height:auto; border:1px solid #cbd5e1; border-radius:6px;">
             </div>
@@ -10989,20 +11004,7 @@ function calcEfficiencyPage() {
     if (!window.lastPfcMultiLoadEff) calcPFC();
     if (!window.lastLlcMultiLoadEff) calcLLC();
 
-    const pfcList230 = window.lastPfcMultiLoadEff230 || [
-        { loadPct: 100, pout: 400, eff: 98.5, totalLoss: 6.1, coreLoss: 1.2, wireLoss: 1.1, mosLoss: 2.2, diodeLoss: 0.8, bulkLoss: 0.3, ctrlLoss: 0.5 },
-        { loadPct: 50, pout: 200, eff: 98.8, totalLoss: 2.4, coreLoss: 1.1, wireLoss: 0.3, mosLoss: 0.8, diodeLoss: 0.4, bulkLoss: 0.1, ctrlLoss: 0.5 },
-        { loadPct: 20, pout: 80, eff: 98.0, totalLoss: 1.6, coreLoss: 1.0, wireLoss: 0.1, mosLoss: 0.3, diodeLoss: 0.2, bulkLoss: 0.05, ctrlLoss: 0.5 },
-        { loadPct: 10, pout: 40, eff: 96.0, totalLoss: 1.7, coreLoss: 1.0, wireLoss: 0.05, mosLoss: 0.2, diodeLoss: 0.1, bulkLoss: 0.02, ctrlLoss: 0.5 }
-    ];
-
-    const pfcList115 = window.lastPfcMultiLoadEff115 || [
-        { loadPct: 100, pout: 400, eff: 96.7, totalLoss: 13.6, coreLoss: 2.0, wireLoss: 4.2, mosLoss: 4.8, diodeLoss: 1.2, bulkLoss: 0.9, ctrlLoss: 0.5 },
-        { loadPct: 50, pout: 200, eff: 97.5, totalLoss: 5.1, coreLoss: 1.8, wireLoss: 1.1, mosLoss: 1.4, diodeLoss: 0.5, bulkLoss: 0.2, ctrlLoss: 0.5 },
-        { loadPct: 20, pout: 80, eff: 97.0, totalLoss: 2.5, coreLoss: 1.6, wireLoss: 0.2, mosLoss: 0.4, diodeLoss: 0.2, bulkLoss: 0.05, ctrlLoss: 0.5 },
-        { loadPct: 10, pout: 40, eff: 94.5, totalLoss: 2.3, coreLoss: 1.5, wireLoss: 0.08, mosLoss: 0.3, diodeLoss: 0.1, bulkLoss: 0.02, ctrlLoss: 0.5 }
-    ];
-
+    // 取得 LLC 各負載點結果 (以 LLC 級額定輸出功率作為全機系統負載基準)
     const llcMultiLoadResults = window.lastLlcMultiLoadEff || [1.0, 0.5, 0.2, 0.1].map(k => {
         const pk_out = 400 * k;
         const pk_loss = 10 * (0.6 * k * k + 0.4);
@@ -11020,15 +11022,29 @@ function calcEfficiencyPage() {
         };
     });
 
-    // 系統總效率 η_sys = η_pfc * η_llc (分別計算 230Vac 與 115Vac)
+    const loadK = [1.0, 0.5, 0.2, 0.1];
+    const cascadePfc230 = [];
+    const cascadePfc115 = [];
+
+    // 系統總效率與總損耗 (前級 PFC + 後級 LLC 串聯系統嚴謹物理與數學模型)
+    // 前級 PFC 輸出端需供應後級 LLC 輸入端所需功率：Pin_llc = Pout_sys + Ploss_llc
     const sysResults230 = [0, 1, 2, 3].map(i => {
-        const pfc = pfcList230[i] || { eff: 98.5, totalLoss: 6.1, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
-        const llc = llcMultiLoadResults[i] || { eff: 97.0, totalLoss: 11, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
-        const sysEff = (pfc.eff * llc.eff) / 100;
+        const k = loadK[i];
+        const llc = llcMultiLoadResults[i] || { eff: 99.12, totalLoss: 3.55, pout: 400 * k };
+        const sysPout = llc.pout;
+        const pfcReqOut = sysPout + llc.totalLoss;
+        const pfc = (typeof calcPfcSinglePoint === 'function' && window.lastPfcCalcParams)
+            ? calcPfcSinglePoint(230, pfcReqOut, k, window.lastPfcCalcParams)
+            : ((window.lastPfcMultiLoadEff230 && window.lastPfcMultiLoadEff230[i]) || { eff: 98.17, totalLoss: 7.51, coreLoss: 1.21, wireLoss: 0.37, mosLoss: 3.43, diodeLoss: 0.30, bulkLoss: 0.70, ctrlLoss: 1.5 });
+        cascadePfc230.push(pfc);
+
         const sysLoss = pfc.totalLoss + llc.totalLoss;
+        const sysPin = sysPout + sysLoss;
+        const sysEff = sysPin > 0 ? (sysPout / sysPin) * 100 : ((pfc.eff * llc.eff) / 100);
+
         return {
-            loadPct: pfc.loadPct,
-            pout: llc.pout,
+            loadPct: Math.round(k * 100),
+            pout: sysPout,
             pfcEff: pfc.eff,
             llcEff: llc.eff,
             sysEff: sysEff,
@@ -11037,13 +11053,22 @@ function calcEfficiencyPage() {
     });
 
     const sysResults115 = [0, 1, 2, 3].map(i => {
-        const pfc = pfcList115[i] || { eff: 96.7, totalLoss: 13.6, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
-        const llc = llcMultiLoadResults[i] || { eff: 97.0, totalLoss: 11, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
-        const sysEff = (pfc.eff * llc.eff) / 100;
+        const k = loadK[i];
+        const llc = llcMultiLoadResults[i] || { eff: 99.12, totalLoss: 3.55, pout: 400 * k };
+        const sysPout = llc.pout;
+        const pfcReqOut = sysPout + llc.totalLoss;
+        const pfc = (typeof calcPfcSinglePoint === 'function' && window.lastPfcCalcParams)
+            ? calcPfcSinglePoint(115, pfcReqOut, k, window.lastPfcCalcParams)
+            : ((window.lastPfcMultiLoadEff115 && window.lastPfcMultiLoadEff115[i]) || { eff: 96.48, totalLoss: 14.73, coreLoss: 2.03, wireLoss: 1.52, mosLoss: 7.23, diodeLoss: 0.30, bulkLoss: 2.05, ctrlLoss: 1.5 });
+        cascadePfc115.push(pfc);
+
         const sysLoss = pfc.totalLoss + llc.totalLoss;
+        const sysPin = sysPout + sysLoss;
+        const sysEff = sysPin > 0 ? (sysPout / sysPin) * 100 : ((pfc.eff * llc.eff) / 100);
+
         return {
-            loadPct: pfc.loadPct,
-            pout: llc.pout,
+            loadPct: Math.round(k * 100),
+            pout: sysPout,
             pfcEff: pfc.eff,
             llcEff: llc.eff,
             sysEff: sysEff,
@@ -11051,34 +11076,37 @@ function calcEfficiencyPage() {
         };
     });
 
+    window.cascadePfcList230 = cascadePfc230;
+    window.cascadePfcList115 = cascadePfc115;
+
     // 80 PLUS 標竿標準對比 (依使用者於下拉選單選取之等級: 鈦金 / 白金 / 金牌)
     const tierSelectEl = document.getElementById('eff_target_tier_select');
     const selectedTier = tierSelectEl ? tierSelectEl.value : 'titanium';
 
     const TIER_SPECS = {
         titanium: {
-            title115: '80 PLUS Titanium (115V EU) 標準門檻',
-            title230: '80 PLUS Titanium (230V EU) 標準門檻',
+            title115: '80 PLUS Titanium 115V 標準門檻',
+            title230: '80 PLUS Titanium 230V 標準門檻',
             badgeLabel: '🏆 80 PLUS Titanium (鈦金)',
             color: '#8b5cf6',
             targets115: { 100: 90.0, 50: 94.0, 20: 92.0, 10: 90.0 },
             targets230: { 100: 91.0, 50: 96.0, 20: 94.0, 10: 90.0 }
         },
         platinum: {
-            title115: '80 PLUS Platinum (115V EU) 標準門檻',
-            title230: '80 PLUS Platinum (230V EU) 標準門檻',
+            title115: '80 PLUS Platinum 115V 標準門檻',
+            title230: '80 PLUS Platinum 230V 標準門檻',
             badgeLabel: '💎 80 PLUS Platinum (白金)',
             color: '#0ea5e9',
-            targets115: { 100: 89.0, 50: 92.0, 20: 90.0, 10: 80.0 },
-            targets230: { 100: 90.0, 50: 94.0, 20: 92.0, 10: 80.0 }
+            targets115: { 100: 89.0, 50: 92.0, 20: 90.0, 10: null },
+            targets230: { 100: 90.0, 50: 94.0, 20: 92.0, 10: null }
         },
         gold: {
-            title115: '80 PLUS Gold (115V EU) 標準門檻',
-            title230: '80 PLUS Gold (230V EU) 標準門檻',
+            title115: '80 PLUS Gold 115V 標準門檻',
+            title230: '80 PLUS Gold 230V 標準門檻',
             badgeLabel: '🥇 80 PLUS Gold (金牌)',
             color: '#eab308',
-            targets115: { 100: 87.0, 50: 90.0, 20: 87.0, 10: 75.0 },
-            targets230: { 100: 88.0, 50: 92.0, 20: 90.0, 10: 75.0 }
+            targets115: { 100: 87.0, 50: 90.0, 20: 87.0, 10: null },
+            targets230: { 100: 88.0, 50: 92.0, 20: 90.0, 10: null }
         }
     };
 
@@ -11107,14 +11135,16 @@ function calcEfficiencyPage() {
     let passAll230 = true;
     let passAll115 = true;
 
-    // ==================== 填充表格一：230Vac (230V EU) ====================
+    // ==================== 填充表格一：230Vac ====================
     const tbody230 = document.getElementById('sys_eff_table_body_230');
     if (tbody230) {
         tbody230.innerHTML = '';
         sysResults230.forEach(r => {
-            const targetVal = curTier.targets230[r.loadPct] || 90.0;
-            const diff = r.sysEff - targetVal;
-            const isPass = (diff >= -0.001);
+            const rawTarget = curTier.targets230[r.loadPct];
+            const isNA = (rawTarget === null || rawTarget === undefined || rawTarget === 'NA');
+            const targetVal = isNA ? null : Number(rawTarget);
+            const diff = !isNA ? (r.sysEff - targetVal) : 0;
+            const isPass = isNA ? true : (diff >= -0.001);
             if (!isPass) passAll230 = false;
 
             const tr = document.createElement('tr');
@@ -11126,25 +11156,29 @@ function calcEfficiencyPage() {
                 <td style="padding:9px; font-family:'DM Mono',monospace; color:#f59e0b;">${r.llcEff.toFixed(2)} %</td>
                 <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent); font-size:1.05rem;">${r.sysEff.toFixed(2)} %</td>
                 <td style="padding:9px; font-family:'DM Mono',monospace;">${r.sysLoss.toFixed(1)} W</td>
-                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:${curTier.color};">${targetVal.toFixed(1)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:${isNA ? 'var(--ink-secondary)' : curTier.color};">${isNA ? 'NA' : targetVal.toFixed(1) + ' %'}</td>
                 <td style="padding:9px; font-weight:700;">
-                    ${isPass
-                        ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
-                        : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`}
+                    ${isNA
+                        ? `<span style="color:var(--ink-secondary);">NA</span>`
+                        : (isPass
+                            ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
+                            : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`)}
                 </td>
             `;
             tbody230.appendChild(tr);
         });
     }
 
-    // ==================== 填充表格二：115Vac (115V EU / US) ====================
+    // ==================== 填充表格二：115Vac ====================
     const tbody115 = document.getElementById('sys_eff_table_body_115');
     if (tbody115) {
         tbody115.innerHTML = '';
         sysResults115.forEach(r => {
-            const targetVal = curTier.targets115[r.loadPct] || 90.0;
-            const diff = r.sysEff - targetVal;
-            const isPass = (diff >= -0.001);
+            const rawTarget = curTier.targets115[r.loadPct];
+            const isNA = (rawTarget === null || rawTarget === undefined || rawTarget === 'NA');
+            const targetVal = isNA ? null : Number(rawTarget);
+            const diff = !isNA ? (r.sysEff - targetVal) : 0;
+            const isPass = isNA ? true : (diff >= -0.001);
             if (!isPass) passAll115 = false;
 
             const tr = document.createElement('tr');
@@ -11156,11 +11190,13 @@ function calcEfficiencyPage() {
                 <td style="padding:9px; font-family:'DM Mono',monospace; color:#f59e0b;">${r.llcEff.toFixed(2)} %</td>
                 <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:700; color:var(--accent); font-size:1.05rem;">${r.sysEff.toFixed(2)} %</td>
                 <td style="padding:9px; font-family:'DM Mono',monospace;">${r.sysLoss.toFixed(1)} W</td>
-                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:#3b82f6;">${targetVal.toFixed(1)} %</td>
+                <td style="padding:9px; font-family:'DM Mono',monospace; font-weight:600; color:${isNA ? 'var(--ink-secondary)' : '#3b82f6'};">${isNA ? 'NA' : targetVal.toFixed(1) + ' %'}</td>
                 <td style="padding:9px; font-weight:700;">
-                    ${isPass
-                        ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
-                        : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`}
+                    ${isNA
+                        ? `<span style="color:var(--ink-secondary);">NA</span>`
+                        : (isPass
+                            ? `<span style="color:#10b981;">✅ 達標 (+${diff.toFixed(2)}%)</span>`
+                            : `<span style="color:#ef4444;">❌ 未達標 (${diff.toFixed(2)}%)</span>`)}
                 </td>
             `;
             tbody115.appendChild(tr);
@@ -11206,7 +11242,7 @@ function renderSystemLossBreakdown() {
     const loadIdxMap = { 100: 0, 50: 1, 20: 2, 10: 3 };
     const idx = loadIdxMap[selLoad] !== undefined ? loadIdxMap[selLoad] : 0;
 
-    const pfcList = (selVac === 115) ? (window.lastPfcMultiLoadEff115 || []) : (window.lastPfcMultiLoadEff230 || []);
+    const pfcList = (selVac === 115) ? (window.cascadePfcList115 || window.lastPfcMultiLoadEff115 || []) : (window.cascadePfcList230 || window.lastPfcMultiLoadEff230 || []);
     const llcList = window.lastLlcMultiLoadEff || [];
 
     const pfcData = pfcList[idx] || { coreLoss: 2, wireLoss: 1.5, mosLoss: 4, diodeLoss: 1.5, bulkLoss: 1, ctrlLoss: 1.5, totalLoss: 11.5, eff: 97 };
@@ -11268,12 +11304,15 @@ function renderSystemLossBreakdown() {
         matrixTbody.innerHTML = '';
         [230, 115].forEach(v => {
             const is230 = (v === 230);
-            const pfcArr = is230 ? (window.lastPfcMultiLoadEff230 || []) : (window.lastPfcMultiLoadEff115 || []);
+            const pfcArr = is230 
+                ? (window.cascadePfcList230 || window.lastPfcMultiLoadEff230 || []) 
+                : (window.cascadePfcList115 || window.lastPfcMultiLoadEff115 || []);
             [0, 1, 2, 3].forEach(i => {
-                const pfc = pfcArr[i] || { loadPct: [100, 50, 20, 10][i], pout: 400 * [1, 0.5, 0.2, 0.1][i], coreLoss: 2, wireLoss: 1.5, mosLoss: 4, diodeLoss: 1.5, bulkLoss: 1, totalLoss: 10, eff: 98 };
-                const llc = llcList[i] || { loadPct: [100, 50, 20, 10][i], pxfmr: 6.5, pmos: 2.8, psec: 2.0, totalLoss: 11.8, eff: 97 };
+                const llc = llcList[i] || { loadPct: [100, 50, 20, 10][i], pxfmr: 6.5, pmos: 2.8, psec: 2.0, totalLoss: 11.8, eff: 97, pout: 400 * [1, 0.5, 0.2, 0.1][i] };
+                const pfc = pfcArr[i] || { loadPct: [100, 50, 20, 10][i], pout: llc.pout, coreLoss: 2, wireLoss: 1.5, mosLoss: 4, diodeLoss: 1.5, bulkLoss: 1, totalLoss: 10, eff: 98 };
+                const sysPout = llc.pout !== undefined ? llc.pout : pfc.pout;
                 const sysLoss = pfc.totalLoss + llc.totalLoss;
-                const sysEff = (pfc.eff * llc.eff) / 100;
+                const sysEff = (sysPout / (sysPout + sysLoss)) * 100;
                 const isSelectedRow = (selVac === v && selLoad === pfc.loadPct);
 
                 const tr = document.createElement('tr');
@@ -11291,7 +11330,7 @@ function renderSystemLossBreakdown() {
                 tr.innerHTML = `
                     <td style="padding:6px 8px; text-align:left; font-weight:700; color:${is230 ? '#10b981' : '#3b82f6'};">${v}Vac</td>
                     <td style="padding:6px 8px; text-align:left; font-weight:600;">${pfc.loadPct}%</td>
-                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${pfc.pout.toFixed(0)} W</td>
+                    <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${sysPout.toFixed(0)} W</td>
                     <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.coreLoss||0).toFixed(2)}</td>
                     <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.wireLoss||0).toFixed(2)}</td>
                     <td style="padding:6px 8px; font-family:'DM Mono',monospace;">${(pfc.mosLoss||0).toFixed(2)}</td>
@@ -11436,15 +11475,6 @@ function drawSystemEfficiencyChart(sysResults230, sysResults115) {
             { x: 100, y: sysResults230[0].sysEff }
         ];
         drawCurve(sysPts230, '#10b981', 3.5, false);
-
-        // LLC 曲線
-        const llcPts = [
-            { x: 10, y: sysResults230[3].llcEff },
-            { x: 20, y: sysResults230[2].llcEff },
-            { x: 50, y: sysResults230[1].llcEff },
-            { x: 100, y: sysResults230[0].llcEff }
-        ];
-        drawCurve(llcPts, '#f59e0b', 2.2, false);
     }
 
     if (sysResults115 && sysResults115.length >= 4) {
