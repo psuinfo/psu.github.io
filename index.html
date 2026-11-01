@@ -1281,11 +1281,19 @@
             <div class="card">
                 <h2>
                     <span id="pfc_sec1_card_title" data-i18n="pfc_main_title">⚡ PFC Design</span>
+                    <span class="badge-tag" id="pfc_in_type_badge_top" style="margin-left:8px; background:rgba(59,130,246,0.12); color:#3b82f6;">AC Input</span>
                     <span class="badge-tag" id="pfc_mode_badge_top">CCM Mode</span>
                 </h2>
 
-                <!-- 導通模式選擇：CCM / BCM -->
-                <div class="input-row-2">
+                <!-- 選擇輸入類型 (AC / DC) 與 導通模式 (CCM / BCM) -->
+                <div class="input-row-3">
+                    <div class="input-box">
+                        <label>🔌 選擇輸入類型</label>
+                        <select id="pfc_in_type" onchange="onPFCInputTypeChange()">
+                            <option value="ac" selected>AC 輸入</option>
+                            <option value="dc">DC 輸入</option>
+                        </select>
+                    </div>
                     <div class="input-box">
                         <label>🔀 選擇導通模式</label>
                         <select id="pfc_mode" onchange="onPFCModeChange()">
@@ -1301,30 +1309,30 @@
 
                 <!-- 1. Input & Output Specification -->
                 <div class="input-row-3">
-                    <div class="section-title">
+                    <div class="section-title" id="pfc_vin_sec_title">
                         📥 輸入交流電壓範圍 Vin (Vac)
                     </div>
                     <div class="input-box vin-hover-wrap">
-                        <label>Vin_rms_min (Vac)</label>
+                        <label id="lbl_pfc_vac_min">Vin_rms_min (Vac)</label>
                         <input type="number" id="pfc_vac_min" value="90" step="1" oninput="calcPFC()">
                         <span class="fx-popover" style="min-width: 210px;">
-                            <b>最低輸入交流峰值電壓</b>
+                            <b id="hover_lbl_vin_min">最低輸入交流峰值電壓</b>
                             <span class="vin-pk-val" id="hover_vin_pk_min">127.28 V</span>
                         </span>
                     </div>
                     <div class="input-box vin-hover-wrap">
-                        <label>Vin_rms_nom (Vac)</label>
+                        <label id="lbl_pfc_vac_nom">Vin_rms_nom (Vac)</label>
                         <input type="number" id="pfc_vac_nom" value="115" step="1" oninput="calcPFC()">
                         <span class="fx-popover" style="min-width: 210px;">
-                            <b>額定輸入交流峰值電壓</b>
+                            <b id="hover_lbl_vin_nom">額定輸入交流峰值電壓</b>
                             <span class="vin-pk-val" id="hover_vin_pk_nom">162.63 V</span>
                         </span>
                     </div>
                     <div class="input-box vin-hover-wrap">
-                        <label>Vin_rms_max (Vac)</label>
+                        <label id="lbl_pfc_vac_max">Vin_rms_max (Vac)</label>
                         <input type="number" id="pfc_vac_max" value="264" step="1" oninput="calcPFC()">
                         <span class="fx-popover" style="min-width: 210px;">
-                            <b>最高輸入交流峰值電壓</b>
+                            <b id="hover_lbl_vin_max">最高輸入交流峰值電壓</b>
                             <span class="vin-pk-val" id="hover_vin_pk_max">373.35 V</span>
                         </span>
                     </div>
@@ -5823,6 +5831,42 @@ function evalCustomFormula(expr, vars) {
     }
 }
 
+// 切換 PFC 輸入類型 (AC / DC)
+function onPFCInputTypeChange() {
+    const inTypeEl = document.getElementById('pfc_in_type');
+    const inType = inTypeEl ? inTypeEl.value : 'ac';
+    const isDC = (inType === 'dc');
+
+    const badgeInType = document.getElementById('pfc_in_type_badge_top');
+    if (badgeInType) {
+        badgeInType.textContent = isDC ? 'DC Input' : 'AC Input';
+        badgeInType.style.background = isDC ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)';
+        badgeInType.style.color = isDC ? '#f59e0b' : '#3b82f6';
+    }
+
+    const secTitle = document.getElementById('pfc_vin_sec_title');
+    if (secTitle) {
+        secTitle.textContent = isDC ? '📥 輸入直流電壓範圍 Vin (Vdc)' : '📥 輸入交流電壓範圍 Vin (Vac)';
+    }
+
+    const lblMin = document.getElementById('lbl_pfc_vac_min');
+    if (lblMin) lblMin.textContent = isDC ? 'Vin_dc_min (Vdc)' : 'Vin_rms_min (Vac)';
+    const lblNom = document.getElementById('lbl_pfc_vac_nom');
+    if (lblNom) lblNom.textContent = isDC ? 'Vin_dc_nom (Vdc)' : 'Vin_rms_nom (Vac)';
+    const lblMax = document.getElementById('lbl_pfc_vac_max');
+    if (lblMax) lblMax.textContent = isDC ? 'Vin_dc_max (Vdc)' : 'Vin_rms_max (Vac)';
+
+    const hMin = document.getElementById('hover_lbl_vin_min');
+    if (hMin) hMin.textContent = isDC ? '最低輸入直流電壓' : '最低輸入交流峰值電壓';
+    const hNom = document.getElementById('hover_lbl_vin_nom');
+    if (hNom) hNom.textContent = isDC ? '額定輸入直流電壓' : '額定輸入交流峰值電壓';
+    const hMax = document.getElementById('hover_lbl_vin_max');
+    if (hMax) hMax.textContent = isDC ? '最高輸入直流電壓' : '最高輸入交流峰值電壓';
+
+    calcPFC();
+    scheduleAutoSave();
+}
+
 // 切換 PFC 導通模式 (CCM / BCM)
 function onPFCModeChange() {
     const modeEl = document.getElementById('pfc_mode');
@@ -6025,14 +6069,16 @@ function calcPfcSinglePoint(vac, pk_out, k, params) {
 
 // 對齊 SMath 檔案 (CCM PFC 20231216.sm lines 1-287) 並支援 CCM / BCM 模式與自訂公式
 function calcPFC() {
+    const inTypeEl = document.getElementById('pfc_in_type');
+    const isDC = (inTypeEl ? inTypeEl.value : 'ac') === 'dc';
     const modeEl = document.getElementById('pfc_mode');
     const mode = modeEl ? modeEl.value : 'ccm';
     const isBCM = (mode === 'bcm');
 
     // 1. Input & Output Specification (.sm lines 11-26)
-    const vac_min = parseFloat(document.getElementById('pfc_vac_min').value); // Vin_rms_min (90 Vac)
-    const vac_nom = parseFloat(document.getElementById('pfc_vac_nom')?.value) || 115; // Vin_rms_nom (115 Vac)
-    const vac_max = parseFloat(document.getElementById('pfc_vac_max').value); // Vin_rms_max (264 Vac)
+    const vac_min = parseFloat(document.getElementById('pfc_vac_min').value); // Vin_min
+    const vac_nom = parseFloat(document.getElementById('pfc_vac_nom')?.value) || 115; // Vin_nom
+    const vac_max = parseFloat(document.getElementById('pfc_vac_max').value); // Vin_max
     const vout = parseFloat(document.getElementById('pfc_vout').value);       // Vout (400 V)
     const pout_min = parseFloat(document.getElementById('pfc_pout_min').value) || 0;
     const pout = parseFloat(document.getElementById('pfc_pout_nom').value) || 400;   // Pout (400 W)
@@ -6056,11 +6102,11 @@ function calcPFC() {
 
     if (vac_min <= 0 || vout <= 0 || pout <= 0 || pout_max <= 0 || eff <= 0 || f <= 0 || beta_input <= 0) return;
 
-    const vin_pk_min = vac_min * Math.SQRT2; // Vin_peak_min = Vin_rms_min * √2 (127.28 V)
-    const vin_pk_nom = vac_nom * Math.SQRT2; // Vin_peak_nom = Vin_rms_nom * √2 (162.63 V)
-    const vin_pk_max = vac_max * Math.SQRT2; // Vin_peak_max = Vin_rms_max * √2 (373.35 V)
+    const vin_pk_min = isDC ? vac_min : (vac_min * Math.SQRT2); // Vin_peak_min
+    const vin_pk_nom = isDC ? vac_nom : (vac_nom * Math.SQRT2); // Vin_peak_nom
+    const vin_pk_max = isDC ? vac_max : (vac_max * Math.SQRT2); // Vin_peak_max
 
-    // 更新滑鼠移到 Vin_rms_min / Vin_rms_nom / Vin_rms_max 時直接顯示的交流峰值電壓 (不列公式)
+    // 更新滑鼠移到 Vin_min / Vin_nom / Vin_max 時直接顯示的電壓數值 (不列公式)
     const hoverMinEl = document.getElementById('hover_vin_pk_min');
     if (hoverMinEl) {
         hoverMinEl.textContent = `${vin_pk_min.toFixed(2)} V`;
@@ -6076,11 +6122,11 @@ function calcPFC() {
 
     // 2. CCM / BCM Core Calculator (.sm lines 45-78)
     const pin = pout_max / eff;                         // Pin = Pout_max / η
-    const iin_rms = pin / vac_min;                      // Iin_rms = Pin / Vin_rms_min
-    const iin_ac_peak = iin_rms * Math.SQRT2;           // Iin_ac_peak = Iin_rms * √2
-    const i_phase_pk = iin_ac_peak / phase;             // @Pout_max 單相交流峰值電流
-    const i_phase_pk_nom = (((pout / eff) / vac_min) * Math.SQRT2) / phase; // @Pout 額定單相交流峰值電流
-    const i_phase_pk_min = (((Math.max(0, pout_min) / eff) / vac_min) * Math.SQRT2) / phase; // @Pout_min 輕載單相交流峰值電流
+    const iin_rms = pin / vac_min;                      // Iin_rms = Pin / Vin_min
+    const iin_ac_peak = isDC ? iin_rms : (iin_rms * Math.SQRT2); // Iin_peak
+    const i_phase_pk = iin_ac_peak / phase;             // @Pout_max 單相峰值電流
+    const i_phase_pk_nom = isDC ? (((pout / eff) / vac_min) / phase) : ((((pout / eff) / vac_min) * Math.SQRT2) / phase); // @Pout 額定單相峰值電流
+    const i_phase_pk_min = isDC ? (((Math.max(0, pout_min) / eff) / vac_min) / phase) : ((((Math.max(0, pout_min) / eff) / vac_min) * Math.SQRT2) / phase); // @Pout_min 輕載單相峰值電流
     const duty_d = (vout - vin_pk_min) / vout;          // D = (Vout - Vin_peak_min) / Vout (0.6818)
 
     // BCM 臨界電感 L_BCM (@f 與 @f_min)
@@ -6559,7 +6605,7 @@ function calcPFC() {
         peakInfo.textContent = `ΔI_peak: ${delta_i_peak.toFixed(2)} A | L: ${l_uH.toFixed(1)} μH | Total Loss: ${total_pfc_loss.toFixed(2)} W`;
     }
 
-    drawPFCChart(vin_pk_min, vout, i_phase_pk, i_phase_pk_nom, i_phase_pk_min, l_henries, f, dmax_limit, dead_angle_deg, isBCM);
+    drawPFCChart(vin_pk_min, vout, i_phase_pk, i_phase_pk_nom, i_phase_pk_min, l_henries, f, dmax_limit, dead_angle_deg, isBCM, isDC);
     drawPFCDcBiasChart(coreType, l_initial, lx_full, h_full, delta_i_peak, activeTurns, le, dc_a, dc_b, dc_b_raw, dc_b_e8, dc_c, dc_d, dc_e, al, nx, stack, lxFormulaStr, l1_henries, ae, ve, bmax_ferrite, bm_ferrite_gauss);
 }
 
@@ -7021,12 +7067,12 @@ let lastPFCChartState = null;
 let pfcHoverDeg = null;
 let pfcHoverY = null;
 
-function drawPFCChart(vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM) {
+function drawPFCChart(vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM, isDC) {
     if (arguments.length > 0) {
-        lastPFCChartState = { vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM };
+        lastPFCChartState = { vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM, isDC };
     }
     if (!lastPFCChartState) return;
-    ({ vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM } = lastPFCChartState);
+    ({ vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dmax_limit, dead_angle_deg, isBCM, isDC } = lastPFCChartState);
 
     const canvas = document.getElementById('pfcChart');
     if (!canvas) return;
@@ -7154,8 +7200,8 @@ function drawPFCChart(vin_pk, vout, i_pk, i_pk_nom, i_pk_min, l_henries, fsw, dm
 
     for (let deg = 0; deg <= steps; deg += 1) {
         const rad = (deg * Math.PI) / 180;
-        const s = Math.sin(rad);
-        const vin_t = vin_pk * s;
+        const s = isDC ? 1 : Math.sin(rad);
+        const vin_t = isDC ? vin_pk : (vin_pk * s);
         const d_raw = Math.max(0, (vout - vin_t) / vout);
         const d_clamped = Math.min(dmax_limit, d_raw);
 
@@ -11514,6 +11560,7 @@ window.onload = function() {
 
     // 3. 呼叫相依 UI 模式切換函數
     onPFCCoreTypeChange();
+    if (typeof onPFCInputTypeChange === 'function') onPFCInputTypeChange();
     if (typeof onPFCModeChange === 'function') onPFCModeChange();
     if (typeof onFlybackModeChange === 'function') onFlybackModeChange();
     if (typeof onLLCRectifierTypeChange === 'function') onLLCRectifierTypeChange();
